@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Local Area Connection* 10",
+    "description": "WAN Miniport (Network Monitor)",
+    "ip": "",
+    "guid": "{620232BF-7750-46DE-95D6-07BFF51DABD5}",
+    "pcap_name": "N/A",
+    "index": "10"
+  },
+  {
+    "name": "Local Area Connection* 9",
+    "description": "WAN Miniport (IPv6)",
+    "ip": "",
+    "guid": "{E63B708A-9729-4ED8-8500-4BC8C0A5AAE0}",
+    "pcap_name": "N/A",
+    "index": "20"
+  },
+  {
+    "name": "Local Area Connection* 8",
+    "description": "WAN Miniport (IP)",
+    "ip": "",
+    "guid": "{F47573CE-3DF6-49BE-9C32-42F6D35D8CDE}",
+    "pcap_name": "N/A",
+    "index": "21"
+  },
+  {
+    "name": "Bluetooth Network Connection",
+    "description": "Bluetooth Device (Personal Area Network)",
+    "ip": "169.254.248.152",
+    "guid": "{777D6C54-B99C-4E73-A789-DD1DD7595B4E}",
+    "pcap_name": "N/A",
+    "index": "12"
+  },
+  {
+    "name": "Wi-Fi",
+    "description": "MediaTek Wi-Fi 6 MT7921 Wireless LAN Card",
+    "ip": "11.12.18.242",
+    "guid": "{C9AA2B3E-2B2F-44E5-BED1-026AAC5E1838}",
+    "pcap_name": "N/A",
+    "index": "18"
+  },
+  {
+    "name": "Local Area Connection* 2",
+    "description": "Microsoft Wi-Fi Direct Virtual Adapter #2",
+    "ip": "169.254.190.175",
+    "guid": "{463CF219-D8EE-4AA7-9AF6-9DFFDFF3C2A9}",
+    "pcap_name": "N/A",
+    "index": "7"
+  },
+  {
+    "name": "Local Area Connection* 1",
+    "description": "Microsoft Wi-Fi Direct Virtual Adapter",
+    "ip": "169.254.16.174",
+    "guid": "{4374B6E9-DE45-4AD5-AD95-9A40077EE41B}",
+    "pcap_name": "N/A",
+    "index": "6"
+  },
+  {
+    "name": "Ethernet 2",
+    "description": "VirtualBox Host-Only Ethernet Adapter",
+    "ip": "192.168.56.1",
+    "guid": "{343668CD-4D44-4E63-A9C3-65E0AEC82C49}",
+    "pcap_name": "N/A",
+    "index": "5"
+  },
+  {
+    "name": "CloudflareWARP",
+    "description": "Cloudflare WARP Interface Tunnel",
+    "ip": "172.16.0.2",
+    "guid": "{DB484304-DB04-6AA0-A33D-7236836B364D}",
+    "pcap_name": "N/A",
+    "index": "3"
+  },
+  {
+    "name": "Loopback Pseudo-Interface 1",
+    "description": "Software Loopback Interface 1",
+    "ip": "127.0.0.1",
+    "guid": "\\Device\\NPF_Loopback",
+    "pcap_name": "N/A",
+    "index": "1"
+  }
+]

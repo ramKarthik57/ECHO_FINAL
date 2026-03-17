@@ -1,0 +1,62 @@
+[
+  {
+    "packet_id": 1,
+    "timestamp": 1773026655.907607,
+    "src_ip": "104.18.39.21",
+    "dst_ip": "10.146.103.190",
+    "packet_size": 78,
+    "protocol": "TCP",
+    "src_port": 443,
+    "dst_port": 7496,
+    "tcp_flags": "AP",
+    "direction": null
+  },
+  {
+    "packet_id": 2,
+    "timestamp": 1773026655.907805,
+    "src_ip": "10.146.103.190",
+    "dst_ip": "104.18.39.21",
+    "packet_size": 82,
+    "protocol": "TCP",
+    "src_port": 7496,
+    "dst_port": 443,
+    "tcp_flags": "AP",
+    "direction": null
+  },
+  {
+    "packet_id": 3,
+    "timestamp": 1773026655.92462,
+    "src_ip": "104.18.39.21",
+    "dst_ip": "10.146.103.190",
+    "packet_size": 54,
+    "protocol": "TCP",
+    "src_port": 443,
+    "dst_port": 7496,
+    "tcp_flags": "A",
+    "direction": null
+  },
+  {
+    "packet_id": 168,
+    "timestamp": 1773026659.289644,
+    "src_ip": "10.146.103.190",
+    "dst_ip": "10.146.103.9",
+    "packet_size": 75,
+    "protocol": "UDP",
+    "src_port": 50575,
+    "dst_port": 53,
+    "tcp_flags": null,
+    "direction": null
+  },
+  {
+    "packet_id": 190,
+    "timestamp": 1773026659.328753,
+    "src_ip": "10.146.103.9",
+    "dst_ip": "10.146.103.190",
+    "packet_size": 103,
+    "protocol": "UDP",
+    "src_port": 53,
+    "dst_port": 50575,
+    "tcp_flags": null,
+    "direction": null
+  }
+]

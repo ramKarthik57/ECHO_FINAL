@@ -1,0 +1,92 @@
+[
+  {
+    "suspect_burst": {
+      "flow_id": "10.146.103.190:50568-10.146.103.9:53-TCP",
+      "src_ip": "10.146.103.190",
+      "dst_ip": "10.146.103.9",
+      "start_time": 1772900859.907452,
+      "end_time": 1772900860.077815,
+      "duration": 0.1703629493713379,
+      "packet_count": 13,
+      "total_bytes": 811,
+      "avg_packet_size": 62.38461538461539,
+      "direction": "outbound"
+    },
+    "remote_burst": {
+      "flow_id": "10.146.103.190:26288-172.64.148.235:443-TCP",
+      "src_ip": "172.64.148.235",
+      "dst_ip": "10.146.103.190",
+      "start_time": 1772900860.274324,
+      "end_time": 1772900860.313689,
+      "duration": 0.03936505317687988,
+      "packet_count": 3,
+      "total_bytes": 214,
+      "avg_packet_size": 71.33333333333333,
+      "direction": "outbound"
+    },
+    "time_delta": 0.19650888442993164,
+    "correlation_score": 0.7516502851563817,
+    "remote_ip": "172.64.148.235",
+    "suspect_ip": "10.146.103.190"
+  },
+  {
+    "suspect_burst": {
+      "flow_id": "10.146.103.190:1072-10.146.103.9:53-TCP",
+      "src_ip": "10.146.103.190",
+      "dst_ip": "10.146.103.9",
+      "start_time": 1772900859.907627,
+      "end_time": 1772900860.093949,
+      "duration": 0.18632197380065918,
+      "packet_count": 13,
+      "total_bytes": 814,
+      "avg_packet_size": 62.61538461538461,
+      "direction": "outbound"
+    },
+    "remote_burst": {
+      "flow_id": "10.146.103.190:26288-172.64.148.235:443-TCP",
+      "src_ip": "172.64.148.235",
+      "dst_ip": "10.146.103.190",
+      "start_time": 1772900860.274324,
+      "end_time": 1772900860.313689,
+      "duration": 0.03936505317687988,
+      "packet_count": 3,
+      "total_bytes": 214,
+      "avg_packet_size": 71.33333333333333,
+      "direction": "outbound"
+    },
+    "time_delta": 0.1803748607635498,
+    "correlation_score": 0.7536172983628818,
+    "remote_ip": "172.64.148.235",
+    "suspect_ip": "10.146.103.190"
+  },
+  {
+    "suspect_burst": {
+      "flow_id": "10.146.103.190:53963-10.146.103.9:53-TCP",
+      "src_ip": "10.146.103.190",
+      "dst_ip": "10.146.103.9",
+      "start_time": 1772900859.907743,
+      "end_time": 1772900860.094037,
+      "duration": 0.1862940788269043,
+      "packet_count": 13,
+      "total_bytes": 802,
+      "avg_packet_size": 61.69230769230769,
+      "direction": "outbound"
+    },
+    "remote_burst": {
+      "flow_id": "10.146.103.190:26288-172.64.148.235:443-TCP",
+      "src_ip": "172.64.148.235",
+      "dst_ip": "10.146.103.190",
+      "start_time": 1772900860.274324,
+      "end_time": 1772900860.313689,
+      "duration": 0.03936505317687988,
+      "packet_count": 3,
+      "total_bytes": 214,
+      "avg_packet_size": 71.33333333333333,
+      "direction": "outbound"
+    },
+    "time_delta": 0.18028688430786133,
+    "correlation_score": 0.7548097115086201,
+    "remote_ip": "172.64.148.235",
+    "suspect_ip": "10.146.103.190"
+  }
+]

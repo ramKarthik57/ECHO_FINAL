@@ -1,0 +1,44 @@
+{
+  "104.18.39.21": {
+    "remote_ip": "104.18.39.21",
+    "is_private": false,
+    "total_flows": 1,
+    "total_packets": 3,
+    "total_bytes": 214,
+    "upload_bytes": 132,
+    "download_bytes": 82,
+    "upload_download_ratio": 1.6097560975609757,
+    "first_seen": 1773026655.907607,
+    "last_seen": 1773026655.907607,
+    "observation_duration": 0.0,
+    "avg_inter_contact_time": 0,
+    "regularity_score": 0,
+    "protocols": {
+      "TCP": 1
+    },
+    "unique_ports": 2,
+    "communication_frequency": 0,
+    "avg_bytes_per_flow": 214.0
+  },
+  "10.146.103.9": {
+    "remote_ip": "10.146.103.9",
+    "is_private": true,
+    "total_flows": 1,
+    "total_packets": 2,
+    "total_bytes": 178,
+    "upload_bytes": 75,
+    "download_bytes": 103,
+    "upload_download_ratio": 0.7281553398058253,
+    "first_seen": 1773026659.289644,
+    "last_seen": 1773026659.289644,
+    "observation_duration": 0.0,
+    "avg_inter_contact_time": 0,
+    "regularity_score": 0,
+    "protocols": {
+      "UDP": 1
+    },
+    "unique_ports": 2,
+    "communication_frequency": 0,
+    "avg_bytes_per_flow": 178.0
+  }
+}

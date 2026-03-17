@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "10.146.103.190",
+      "label": "Suspect Device",
+      "type": "suspect",
+      "suspicion_score": 0,
+      "total_flows": 0,
+      "total_bytes": 0
+    },
+    {
+      "id": "104.18.39.21",
+      "label": "104.18.39.21",
+      "type": "remote",
+      "suspicion_score": 20.0,
+      "total_flows": 1,
+      "total_bytes": 214
+    },
+    {
+      "id": "10.146.103.9",
+      "label": "10.146.103.9",
+      "type": "remote",
+      "suspicion_score": 0.0,
+      "total_flows": 1,
+      "total_bytes": 178
+    }
+  ],
+  "edges": [
+    {
+      "source": "10.146.103.190",
+      "target": "104.18.39.21",
+      "weight": 214,
+      "flow_count": 1,
+      "type": "communication",
+      "has_correlations": false
+    },
+    {
+      "source": "10.146.103.190",
+      "target": "10.146.103.9",
+      "weight": 178,
+      "flow_count": 1,
+      "type": "communication",
+      "has_correlations": false
+    }
+  ],
+  "suspect_ip": "10.146.103.190"
+}

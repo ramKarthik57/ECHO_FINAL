@@ -1,0 +1,40 @@
+[
+  {
+    "flow_id": "10.146.103.190:7496-104.18.39.21:443-TCP",
+    "src_ip": "104.18.39.21",
+    "dst_ip": "10.146.103.190",
+    "src_port": 443,
+    "dst_port": 7496,
+    "protocol": "TCP",
+    "start_time": 1773026655.907607,
+    "end_time": 1773026655.92462,
+    "duration": 0.017012834548950195,
+    "packet_count": 3,
+    "total_bytes": 214,
+    "upload_bytes": 132,
+    "download_bytes": 82,
+    "upload_packets": 2,
+    "download_packets": 1,
+    "upload_download_ratio": 1.6097560975609757,
+    "avg_packet_size": 71.33333333333333
+  },
+  {
+    "flow_id": "10.146.103.190:50575-10.146.103.9:53-UDP",
+    "src_ip": "10.146.103.190",
+    "dst_ip": "10.146.103.9",
+    "src_port": 50575,
+    "dst_port": 53,
+    "protocol": "UDP",
+    "start_time": 1773026659.289644,
+    "end_time": 1773026659.328753,
+    "duration": 0.039108991622924805,
+    "packet_count": 2,
+    "total_bytes": 178,
+    "upload_bytes": 75,
+    "download_bytes": 103,
+    "upload_packets": 1,
+    "download_packets": 1,
+    "upload_download_ratio": 0.7281553398058253,
+    "avg_packet_size": 89.0
+  }
+]

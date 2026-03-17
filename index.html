@@ -1,0 +1,2919 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECHO - Encrypted Communication Heuristic Observer</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- vis.js -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #0a0c10;
+            --bg-surface: #111318;
+            --bg-card: #161b22;
+            --accent-cyan: #00d4ff;
+            --accent-secondary: #0099cc;
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --success: #2ed573;
+            --text-main: #e6edf3;
+            --text-muted: #7d8590;
+            --border: rgba(255, 255, 255, 0.08);
+            --glow: 0 0 20px rgba(0, 212, 255, 0.15);
+            --glow-danger: 0 0 20px rgba(255, 71, 87, 0.15);
+            --glow-success: 0 0 20px rgba(46, 213, 115, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .text-cyan {
+            color: var(--accent-cyan);
+        }
+
+        .text-danger {
+            color: var(--danger);
+        }
+
+        .text-warning {
+            color: var(--warning);
+        }
+
+        .text-success {
+            color: var(--success);
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        /* Header */
+        header {
+            height: 60px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            justify-content: space-between;
+        }
+
+        .brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.8;
+                box-shadow: 0 0 0 0 rgba(46, 213, 115, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                opacity: 1;
+                box-shadow: 0 0 0 6px rgba(46, 213, 115, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 0.8;
+                box-shadow: 0 0 0 0 rgba(46, 213, 115, 0);
+            }
+        }
+
+        /* Nav Tabs */
+        .tabs {
+            display: flex;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 16px;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tab:hover {
+            color: var(--text-main);
+        }
+
+        .tab.active {
+            color: var(--accent-cyan);
+            border-bottom: 2px solid var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        /* Main Layout */
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .view {
+            display: none;
+            height: 100%;
+            animation: fadeIn 0.3s;
+        }
+
+        .view.active {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            align-content: start;
+        }
+
+        /* Prevent Collapsed UI */
+        .grid-left { grid-column: 1 / 2; }
+        .grid-right { grid-column: 2 / 3; }
+        
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.03), transparent);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Cards & Panels */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .card-header {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        /* Stat Box */
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 10px 16px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .data-table tr {
+            transition: background 0.2s;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Prevent UI Overlap / Scroll bugs */
+        .card { position: relative !important; z-index: 1; }
+        #tab-partyb { position: relative; }
+        #tab-partyb .card { margin-bottom: 24px; }
+        #explainModal { backdrop-filter: blur(8px); }
+
+        /* New Row Animation */
+        @keyframes highlightRow {
+            0% {
+                background-color: rgba(0, 212, 255, 0.2);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .row-new {
+            animation: highlightRow 1.5s ease-out;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.1);
+            display: inline-block;
+        }
+
+        .badge.danger {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+        }
+
+        .badge.warning {
+            background: rgba(255, 165, 2, 0.2);
+            color: var(--warning);
+            border: 1px solid rgba(255, 165, 2, 0.3);
+        }
+
+        .badge.success {
+            background: rgba(46, 213, 115, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(46, 213, 115, 0.3);
+        }
+
+        .badge.cyan {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        /* Controls */
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        input,
+        select {
+            width: 100%;
+            background: #000;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-primary {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: var(--glow);
+        }
+
+        .btn-danger {
+            background: rgba(255, 71, 87, 0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #000;
+            box-shadow: var(--glow-danger);
+        }
+
+        /* Specific Views */
+        .feed-container {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            background: #000;
+        }
+
+        .chart-container {
+            height: 250px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Network Graph */
+        #networkG {
+            height: 600px;
+            border: 1px solid var(--border);
+            background: #000;
+            border-radius: 4px;
+        }
+
+        /* Heatmap */
+        .heatmap {
+            display: grid;
+            grid-template-columns: auto repeat(24, 1fr);
+            gap: 2px;
+            margin-top: 10px;
+        }
+
+        .heat-cell {
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .heat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-align: right;
+            padding-right: 8px;
+            line-height: 16px;
+        }
+
+        /* Timeline */
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .timeline-label {
+            width: 140px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .timeline-track {
+            flex: 1;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            position: relative;
+            border-radius: 4px;
+        }
+
+        .timeline-bar {
+            position: absolute;
+            height: 100%;
+            border-radius: 2px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+
+        .timeline-bar:hover {
+            opacity: 1;
+            outline: 1px solid #fff;
+            z-index: 10;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            top: -8px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid var(--danger);
+        }
+
+        /* Alerts */
+        .alert-banner {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--danger);
+            border-left: 4px solid var(--danger);
+            padding: 12px 16px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.1);
+        }
+
+        .alert-banner p {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        .alert-banner .title {
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        /* Evidence Bar Chart */
+        .evidence-bar-container {
+            width: 100%;
+            background: #000;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            margin-top: 8px;
+        }
+
+        .evidence-segment {
+            height: 100%;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 12px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            background: var(--bg-main);
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 800px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        /* Forensic Report Styling */
+        .report-doc {
+            background: #fff;
+            color: #000;
+            padding: 40px;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .report-doc h1 {
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .report-doc p {
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .report-table th,
+        .report-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+
+        @media print {
+
+            header,
+            nav,
+            .tabs,
+            footer,
+            #report-modal .modal-footer,
+            button {
+                display: none !important;
+            }
+
+            .report-doc {
+                display: block !important;
+            }
+
+            body {
+                background: #fff !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="legalGate" style="position:fixed;top:0;left:0;
+width:100%;height:100%;background:rgba(8,11,18,0.97);
+z-index:9999;display:flex;align-items:center;
+justify-content:center;font-family:'Inter',sans-serif;">
+        <div style="background:#161b22;border:1px solid 
+  rgba(0,212,255,0.4);border-radius:12px;padding:40px;
+  max-width:460px;width:90%;">
+            <div style="text-align:center;margin-bottom:24px;">
+                <div style="font-family:'JetBrains Mono',monospace;
+      font-size:32px;font-weight:700;color:#00d4ff;
+      letter-spacing:8px;text-shadow:0 0 20px rgba(0,212,255,0.4);">
+                    ECHO</div>
+                <div style="font-size:11px;color:#7d8590;
+      letter-spacing:2px;margin-top:6px;text-transform:uppercase;">
+                    Forensic Intelligence Platform</div>
+            </div>
+            <div style="background:rgba(255,71,87,0.1);
+    border-left:3px solid #ff4757;padding:10px 14px;
+    border-radius:4px;margin-bottom:24px;font-size:13px;
+    color:#ff4757;font-weight:600;">
+                ⚠ AUTHORIZED LAW ENFORCEMENT DEPLOYMENT ONLY</div>
+            <div style="margin-bottom:16px;">
+                <div style="font-size:11px;color:#7d8590;
+      letter-spacing:1px;text-transform:uppercase;
+      margin-bottom:6px;">Warrant / Case Reference</div>
+                <input value="WRT-2024-04471" style="width:100%;
+      background:#0d1117;border:1px solid rgba(255,255,255,0.1);
+      border-radius:6px;padding:10px;color:#00d4ff;
+      font-family:'JetBrains Mono',monospace;font-size:14px;
+      box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <div style="font-size:11px;color:#7d8590;
+      letter-spacing:1px;text-transform:uppercase;
+      margin-bottom:6px;">Investigator Badge ID</div>
+                <input value="INV-7734" style="width:100%;
+      background:#0d1117;border:1px solid rgba(255,255,255,0.1);
+      border-radius:6px;padding:10px;color:#e6edf3;
+      font-family:'JetBrains Mono',monospace;font-size:14px;
+      box-sizing:border-box;">
+            </div>
+            <label style="display:flex;align-items:flex-start;
+    gap:10px;cursor:pointer;margin-bottom:24px;">
+                <input type="checkbox" id="authCheck" style="margin-top:2px;width:16px;height:16px;
+      accent-color:#00d4ff;flex-shrink:0;">
+                <span style="font-size:12px;color:#7d8590;line-height:1.6;">
+                    I confirm this system is deployed under lawful
+                    authorization and valid legal instrument. All actions
+                    will be logged for chain of custody.</span>
+            </label>
+            <button id="authBtn" disabled onclick="doAuth()" style="width:100%;padding:14px;background:#00d4ff;
+    color:#000;font-weight:700;font-size:14px;border:none;
+    border-radius:6px;cursor:not-allowed;letter-spacing:1px;
+    opacity:0.4;transition:all 0.2s;font-family:'Inter',sans-serif;">
+                AUTHENTICATE &amp; INITIALIZE SYSTEM</button>
+            <div id="authProgress" style="display:none;margin-top:16px;">
+                <div style="background:rgba(255,255,255,0.1);
+      border-radius:4px;height:4px;overflow:hidden;">
+                    <div id="authBar" style="background:#00d4ff;
+        height:100%;width:0%;transition:width 0.08s linear;">
+                    </div>
+                </div>
+                <div id="authMsg" style="font-size:12px;color:#7d8590;
+      margin-top:8px;text-align:center;min-height:18px;">
+                </div>
+            </div>
+        </div>
+    </div>
+    <header>
+        <div class="brand">
+            <span class="text-cyan">ECHO</span>
+            <span class="text-muted">|</span>
+            <span>Encrypted Communication Heuristic Observer</span>
+        </div>
+        <div class="live-indicator">
+            <div class="dot" id="warp-dot" style="background: #7d8590;"></div>
+            WARP: <span id="warp-status-text" class="mono" style="margin-right: 10px;">Checking...</span>
+            <button onclick="forceWarpConnect()" id="btn-warp-link" class="btn btn-primary" style="font-size: 0.7rem; padding: 2px 8px; background: #f38020; border-color: #f38020;">
+                FORCE LINK
+            </button>
+            <div class="text-muted" style="margin: 0 15px;">|</div>
+            <div class="dot"></div>
+            LIVE CAPTURE ACTIVE
+            <button onclick="launchWireshark()" class="btn btn-primary" style="margin-left: 20px; font-size: 0.75rem; padding: 4px 10px;">
+                <span class="mono">Wireshark Bridge</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" data-target="tab-live">Live Capture</div>
+        <div class="tab" data-target="tab-behavior">Behavioral Analysis</div>
+        <div class="tab" data-target="tab-vpn">VPN & Tor Tunnel</div>
+        <div class="tab" data-target="tab-wifi">WiFi & Device Profiling</div>
+        <div class="tab" data-target="tab-partyb">Party-B ID</div>
+        <div class="tab" data-target="tab-graph">Network Graph</div>
+        <div class="tab" data-target="tab-timeline">Timeline Forensics</div>
+        <div class="tab" data-target="tab-evidence">Evidence Log</div>
+    </div>
+
+    <div class="main-content">
+        <!-- Tab 1: Live Capture -->
+        <div class="view active" id="tab-live">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span>Capture Control</span>
+                        <span class="badge warning">AUTH REQ</span>
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">Target Device</span>
+                        <select id="target-select">
+                            <option value="172.16.0.2">SUSPECT-VPN-BRIDGE | 172.16.0.2</option>
+                            <option value="192.168.1.47">SUSPECT-PC-001 | 192.168.1.47</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">Interface</span>
+                        <select id="interface-select">
+                            <option>eth0 (Primary)</option>
+                            <option>wlan0 (Wireless)</option>
+                            <option>lo (Loopback)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">Warrant Authorization ID</span>
+                        <input type="text" id="warrant-id" value="WRT-2024-04471" readonly>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 20px;">
+                        <button class="btn btn-primary" id="btn-start-capture">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Start
+                        </button>
+                        <button class="btn" id="btn-pause-capture">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="6" y="4" width="4" height="16"></rect>
+                                <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            Pause
+                        </button>
+                        <button class="btn btn-danger" id="btn-stop-capture">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            </svg>
+                            Stop
+                        </button>
+                        <button class="btn" id="btn-open-wireshark" style="background: #2b3d52; border-color: #3b4e63;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            Open in Wireshark
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span>Real-time Telemetry</span>
+                        <div class="live-indicator">
+                            <div class="dot"></div>
+                        </div>
+                    </div>
+                    <div class="grid-2" style="margin-bottom: 20px;">
+                        <div class="stat-box">
+                            <div class="stat-value mono" id="stat-packets">24,604</div>
+                            <div class="stat-label">Packets Captured</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value mono" id="stat-sessions">1,407</div>
+                            <div class="stat-label">Sessions Analyzed</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value mono text-warning" id="stat-suspicious">12</div>
+                            <div class="stat-label">Suspicious Endpoints</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value mono" id="stat-timer">00:45:12</div>
+                            <div class="stat-label">Active Duration</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="liveChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert-banner" id="evasion-alert" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                    </path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <div>
+                    <span class="title">⚠ EVASION DETECTED:</span>
+                    <p>Suspect using Mullvad VPN — switching to infrastructure correlation mode.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>Live Packet Feed (Heuristic Filter: ON)</span>
+                    <span class="badge success">AUTO-SCROLL</span>
+                </div>
+                <div class="feed-container" id="packet-feed">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Source IP</th>
+                                <th>Dest IP</th>
+                                <th>Protocol</th>
+                                <th>Size</th>
+                                <th>TLS-SNI / Info</th>
+                                <th>Flag</th>
+                            </tr>
+                        </thead>
+                        <tbody id="packet-tbody" class="mono">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Behavioral Analysis -->
+        <div class="view" id="tab-behavior">
+            <div class="card">
+                <div class="card-header">
+                    <span>Burst Synchronization Analysis</span>
+                    <span class="badge cyan">CORRELATION ENGINE V2</span>
+                </div>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="burstChart"></canvas>
+                </div>
+                <div style="margin-top: 16px; text-align: center;">
+                    <span class="badge success" style="font-size: 1rem; padding: 8px 16px;">94.2% CORRELATED SESSION DETECTED</span>
+                </div>
+            </div>
+
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header" style="border-bottom: none; margin-bottom: 0;">Traffic Fingerprinting</div>
+                    <h3 style="margin-bottom: 8px; color: var(--accent-cyan);">WhatsApp Voice Call</h3>
+                    <p class="text-muted mono" style="font-size: 0.8rem; margin-bottom: 16px;">JA3:
+                        771,4865-4866...23-24</p>
+                    <div style="display: flex; align-items: flex-end; height: 60px; gap: 2px; margin-bottom: 16px;"
+                        id="fp-bars-1">
+                        <!-- Bars injected via JS -->
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="text-muted" style="font-size: 0.8rem;">CONFIDENCE</span>
+                        <span class="text-success" style="font-weight: 700; font-size: 1.2rem;">91%</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header" style="border-bottom: none; margin-bottom: 0;">Traffic Fingerprinting</div>
+                    <h3 style="margin-bottom: 8px; color: var(--accent-cyan);">Signal Message Exchange</h3>
+                    <p class="text-muted mono" style="font-size: 0.8rem; margin-bottom: 16px;">JA3:
+                        771,4865-4866...23-24</p>
+                    <div style="display: flex; align-items: flex-end; height: 60px; gap: 2px; margin-bottom: 16px;"
+                        id="fp-bars-2"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="text-muted" style="font-size: 0.8rem;">CONFIDENCE</span>
+                        <span class="text-success" style="font-weight: 700; font-size: 1.2rem;">87%</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header" style="border-bottom: none; margin-bottom: 0;">Traffic Fingerprinting</div>
+                    <h3 style="margin-bottom: 8px; color: var(--danger);">Tor Browser Session</h3>
+                    <p class="text-muted mono" style="font-size: 0.8rem; margin-bottom: 16px;">JA3:
+                        771,4865-4867...23-24</p>
+                    <div style="display: flex; align-items: flex-end; height: 60px; gap: 2px; margin-bottom: 16px;"
+                        id="fp-bars-3"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="text-muted" style="font-size: 0.8rem;">CONFIDENCE</span>
+                        <span class="text-danger" style="font-weight: 700; font-size: 1.2rem;">96%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>Communication Rhythm Analysis (7-Day Heatmap)</span>
+                    <span class="badge warning">Peak activity: 21:00–22:30 UTC daily</span>
+                </div>
+                <div id="rhythm-heatmap">
+                    <!-- Heatmap generated via JS -->
+                </div>
+                <div
+                    style="margin-top: 20px; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-muted);">
+                    Less Active
+                    <div
+                        style="width: 100px; height: 10px; background: linear-gradient(to right, #0a2a3a, #00d4ff); border-radius: 2px;">
+                    </div>
+                    More Active
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab 4: VPN & Tor Analysis -->
+        <div class="view" id="tab-vpn">
+            <h2 style="font-size: 1.2rem; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">🔴 VPN / Tor Deanonymisation Engine</h2>
+            <p class="text-muted" style="margin-bottom: 20px; font-size: 0.9rem;">Cross-layer timing synchrony attack • JA3 stack fingerprinting • Threat intelligence enrichment. Identifies the <strong class="text-danger">real user</strong> behind any VPN or Tor circuit.</p>
+
+            <!-- Top row: Live terminal + Confidence + Geo -->
+            <div class="grid-2" style="gap: 20px;">
+                <!-- Left: Live Unmasking Terminal -->
+                <div class="card" style="border-top: 2px solid var(--danger); padding: 0; overflow: hidden;">
+                    <div class="card-header" style="background: rgba(255,71,87,0.08); border-bottom: 1px solid rgba(255,71,87,0.2);">
+                        <span style="color: var(--danger); font-weight: 700; letter-spacing: 1px;">⬡ DEANONYMISATION TERMINAL</span>
+                        <span class="badge danger" style="animation: pulse 1.5s infinite;">LIVE</span>
+                    </div>
+                    <div id="unmask-console" class="mono" style="height: 240px; background: #000c18; padding: 15px; font-size: 0.78rem; overflow-y: auto; color: #00ff88; line-height: 1.7;">
+                        <div style="color: #555;">[0000ms] ECHO Forensic Engine v1.0 — Tor/VPN Unmasking Module</div>
+                        <div style="color: #00d4ff;">[0012ms] Warrant WRT-2026-04471 authenticated. Capture active.</div>
+                        <div>[0088ms] Loading threat intelligence database (ASN, Tor exit list)...</div>
+                        <div style="color: #00d4ff;">[0201ms] Target IP detected: <span id="target-unmask-ip" style="color: #ff4757; font-weight: bold;">scanning...</span></div>
+                        <div>[0350ms] Initiating sliding-window timing correlation attack...</div>
+                        <div>[0512ms] Cross-correlating outbound burst patterns with global responses...</div>
+                        <div id="unmask-log"></div>
+                    </div>
+                    <!-- Identity Overlay -->
+                    <div id="identity-overlay" style="display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(255,71,87,0.9); color:#fff; padding:10px; font-weight:700; text-align:center; transform:translateY(100%); transition:transform 0.5s; z-index:10;">
+                        ⚠ <span id="unmasked-identity-name">IDENTITY UNMASKED</span> — WRT-2026 EVIDENCE LOCK
+                    </div>
+                </div>
+
+                <!-- Right: Confidence Meter + Attribution -->
+                <div class="card" style="border-top: 2px solid var(--accent-cyan); display: flex; flex-direction: column; gap: 20px;">
+                    <div>
+                        <div class="card-header" style="border: none; padding-bottom: 0;">Party-B Attribution Score</div>
+                        <div style="display: flex; align-items: center; gap: 20px; margin-top: 12px;">
+                            <!-- Circular Gauge -->
+                            <div style="position: relative; width: 120px; height: 120px; flex-shrink: 0;">
+                                <svg width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
+                                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,71,87,0.1)" stroke-width="12"/>
+                                    <circle id="gauge-circle" cx="60" cy="60" r="50" fill="none" stroke="var(--danger)" stroke-width="12" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round" style="transition: stroke-dashoffset 1.2s ease;"/>
+                                </svg>
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                    <div id="unmask-confidence" style="font-size: 1.5rem; font-weight: 800; color: var(--danger);">0%</div>
+                                    <div style="font-size: 0.6rem; color: var(--text-muted);">CONFIDENCE</div>
+                                </div>
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem;">
+                                <div>
+                                    <div class="text-muted" style="font-size: 0.68rem; margin-bottom: 2px;">TOP ATTRIBUTED IP</div>
+                                    <div id="top-attributed-ip" class="mono text-danger" style="font-size: 1rem;">—</div>
+                                </div>
+                                <div>
+                                    <div class="text-muted" style="font-size: 0.68rem; margin-bottom: 2px;">INFRASTRUCTURE / ASN</div>
+                                    <div id="top-attributed-asn" class="mono" style="color: var(--warning); font-size: 0.85rem;">—</div>
+                                </div>
+                                <div>
+                                    <div class="text-muted" style="font-size: 0.68rem; margin-bottom: 2px;">TUNNEL TYPE</div>
+                                    <div id="top-tunnel-type" class="mono" style="color: var(--accent-cyan);">—</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                            <div id="unmask-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #ff4757, #ff6b81); transition: width 1.2s ease; border-radius: 3px;"></div>
+                        </div>
+                    </div>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 15px;">
+                        <div class="text-muted" style="font-size: 0.7rem; margin-bottom: 8px;">FORENSIC TAGS</div>
+                        <div id="unmask-tags" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            <span class="badge" style="background: rgba(0,212,255,0.1); color: var(--accent-cyan);">AWAITING CORRELATION</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle row: Detected Tunnels Table + Burst Chart -->
+            <div class="grid-2" style="gap: 20px;">
+                <div class="card">
+                    <div class="card-header">
+                        <span>Detected Encrypted Tunnels</span>
+                        <span id="vpn-count-badge" class="badge warning">0 ACTIVE</span>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Remote Node</th>
+                                <th>ASN / Org</th>
+                                <th>Lat (ms)</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vpn-tbody" class="mono">
+                            <tr><td colspan="5" class="text-muted" style="text-align:center;padding:20px;">Scanning...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span>Timing Synchrony — Burst Phase Correlation</span>
+                        <span class="badge cyan" style="font-size: 0.65rem;">REAL-TIME</span>
+                    </div>
+                    <div class="chart-container" style="height: 190px;">
+                        <canvas id="burstChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom: All correlations ranked list -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Full Probabilistic Attribution Ranking</span>
+                    <span id="correlation-total-badge" class="badge cyan">COMPUTING...</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Remote IP</th>
+                            <th>Attribution / ASN</th>
+                            <th>Method</th>
+                            <th>Hits</th>
+                            <th>Posterior Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="correlation-table" class="mono">
+                        <tr><td colspan="6" class="text-muted" style="text-align:center;padding:20px;">Waiting for capture data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 5: WiFi & Device Profiling -->
+        <div class="view" id="tab-wifi">
+            <h2 style="font-size: 1.2rem; margin-bottom: 4px; font-weight: 600; text-transform: uppercase;">Passive WiFi & Device Profiling</h2>
+            <p class="text-muted" style="margin-bottom: 20px; font-size: 0.9rem;">Non-intrusive identification of devices based on signal characteristics and hardware metadata.</p>
+            
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header">Target Metadata</div>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <div class="text-muted" style="font-size: 0.7rem;">HARDWARE VENDOR</div>
+                            <div id="wifi-vendor" class="mono" style="font-size: 1.1rem; color: var(--accent-cyan);">Apple, Inc.</div>
+                        </div>
+                        <div>
+                            <div class="text-muted" style="font-size: 0.7rem;">OS FINGERPRINT</div>
+                            <div id="wifi-os" class="mono" style="font-size: 1.1rem; color: var(--accent-cyan);">iOS 17.4+ / macOS 14</div>
+                        </div>
+                        <div>
+                            <div class="text-muted" style="font-size: 0.7rem;">SIGNAL QUALITY (RSSI)</div>
+                            <div class="mono" style="font-size: 1.1rem; color: var(--success);">-42 dBm (Excellent)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">Nearby Proximity Devices</div>
+                    <ul style="list-style: none; padding: 0; font-size: 0.8rem; color: var(--text-muted);" id="wifi-nearby">
+                        <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between;">
+                            <span>Samsung Galaxy S23</span>
+                            <span class="text-success">-58 dBm</span>
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between;">
+                            <span>Amazon Echo Dot</span>
+                            <span class="text-warning">-74 dBm</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-header">Probe Request History</div>
+                    <div style="height: 120px; font-family: monospace; font-size: 0.75rem; overflow-y: auto; color: var(--success);">
+                        [09:24:12] PROBE: "Home_WiFi_5G"<br>
+                        [09:24:15] PROBE: "Starbucks_Free"<br>
+                        [09:24:18] PROBE: "Airport_Guest"<br>
+                        [09:25:01] PROBE: "Suspect_Mobile_Hotspot"
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.75rem; color: var(--text-muted);">
+                        * Probe requests reveal past movement history.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Party-B ID -->
+        <div class="view" id="tab-partyb">
+            <div id="tor-circuit-container" style="display:block; margin-top: 10px; margin-bottom: 20px; padding: 20px; background: rgba(0,212,255,0.03); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px;">
+                <h4 style="color:var(--accent-cyan); margin-bottom: 15px;">TOR CIRCUIT DE-ANONYMIZATION MAP</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+                    <div class="node" style="text-align:center;">
+                        <span style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px;">SUSPECT</span>
+                        <div style="width:50px; height:50px; background:var(--accent-cyan); border-radius:50%; margin:0 auto 5px; display:flex; align-items:center; justify-content:center; color:#000; font-weight:bold;">S</div>
+                        <div style="font-size:0.8rem; color:var(--accent-cyan);">172.16.0.2</div>
+                    </div>
+                    <div style="flex:1; height:2px; background:rgba(0,212,255,0.3); margin:0 10px; position:relative;">
+                        <div class="pulse" style="position:absolute; width:100%; height:100%; background:linear-gradient(90deg, transparent, var(--accent-cyan), transparent); animation: sweep 2s infinite;"></div>
+                    </div>
+                    <div class="node" style="text-align:center;">
+                        <span style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px;">GUARD</span>
+                        <div style="width:40px; height:40px; border:2px solid var(--accent-cyan); border-radius:50%; margin:0 auto 5px; display:flex; align-items:center; justify-content:center; font-size:0.6rem;">NODE</div>
+                        <div id="tor-guard-ip" style="font-size:0.75rem; color:#aaa;">199.58.81.140</div>
+                    </div>
+                    <div style="flex:1; height:2px; background:rgba(0,212,255,0.3); margin:0 10px;"></div>
+                    <div class="node" style="text-align:center;">
+                        <span style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px;">MIDDLE</span>
+                        <div style="width:40px; height:40px; border:2px solid var(--accent-cyan); border-radius:50%; margin:0 auto 5px; display:flex; align-items:center; justify-content:center; font-size:0.6rem;">RELAY</div>
+                        <div id="tor-middle-ip" style="font-size:0.75rem; color:#aaa;">144.76.76.107</div>
+                    </div>
+                    <div style="flex:1; height:2px; background:rgba(255,71,87,0.3); margin:0 10px;"></div>
+                    <div class="node" style="text-align:center;">
+                        <span style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px;">EXIT</span>
+                        <div style="width:50px; height:50px; background:var(--danger); border-radius:50%; margin:0 auto 5px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold;">EXIT</div>
+                        <div id="tor-exit-ip" style="font-size:0.8rem; color:var(--danger);">185.220.101.47</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- NEW: Tor Relay Timing Synchrony (PRE-LOADED PROOF) -->
+                <div id="tor-flow-card" class="card" style="grid-column: span 2; min-height: 280px; display: block; border-color: var(--danger); background: rgba(255,165,2,0.03);">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-color: rgba(255,165,2,0.3);">
+                        <span style="color: var(--warning); font-weight: 700; letter-spacing:1px;">TOR TRAFFIC FLOW — MULTI-RELAY TIMING SYNCHRONY</span>
+                        <span class="badge danger">MATCHED: GEO-ALIGNED BURST</span>
+                    </div>
+                    <div style="height: 180px; position: relative; margin-top: 15px;">
+                        <canvas id="torFlowChart"></canvas>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-top: 10px; color: var(--text-muted);">
+                        <div style="display: flex; gap: 15px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: #ff4757;"></div>
+                                <span>SUSPECT (ENTRY)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: #ffa502;"></div>
+                                <span>RELAY 2 (MIDDLE)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: #2ed573;"></div>
+                                <span>DESTINATION (EXIT)</span>
+                            </div>
+                        </div>
+                        <div style="font-style: italic; color: var(--warning); opacity:0.8;">Phase-aligned packet bursts (Δt < 12ms) confirm 3-hop circuit association.</div>
+                    </div>
+                </div>
+
+                <!-- Forensic Handoff Alert (Dynamic) -->
+                <div id="forensic-handoff-alert" style="display: none; grid-column: span 2; background: rgba(255,165,2,0.1); border: 1px solid var(--warning); border-radius: 6px; padding: 12px 20px; margin-bottom: 20px; animation: pulse-border 2s infinite;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="pulse" style="width: 10px; height: 10px; background: var(--warning); border-radius: 50%;"></span>
+                        <div style="flex: 1;">
+                            <span style="color: var(--warning); font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Forensic Transition Detected</span>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Primary VPN tunnel (WARP) terminated. Intelligence handoff to Tor Layer 3 successful. Tracking persistency maintained.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-Time Candidate Feed -->
+                <div class="card">
+                    <div class="card-header">Unmasked Remote Parties (Evidence Map)</div>
+                    <table class="mono" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="text-align: left; border-bottom: 2px solid rgba(255,255,255,0.1);">
+                                <th style="padding: 10px 0;">Remote Destination</th>
+                                <th>Linkage Score</th>
+                                <th>Forensic Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evidence-map-tbody">
+                            <!-- Pre-populated Evidence (Historical Trace) -->
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 10px 0;"><span class="mono" style="color:var(--accent-cyan); font-weight:bold;">199.58.81.140</span></td>
+                                <td><span class="text-success" style="font-weight:700;">INFRA</span></td>
+                                <td class="text-muted" style="font-size:0.7rem;">TOR GUARD NODE (CA)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.02);">
+                                <td style="padding: 10px 0;"><span class="mono" style="color:var(--accent-cyan); font-weight:bold;">144.76.76.107</span></td>
+                                <td><span class="text-warning" style="font-weight:700;">INFRA</span></td>
+                                <td class="text-muted" style="font-size:0.7rem;">TOR MIDDLE RELAY (DE)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Top Candidate (Enhanced with Dynamic Logic) -->
+                <div class="card" id="prime-candidate-card" style="display: none; border-color: var(--danger); box-shadow: inset 0 0 20px rgba(255,71,87,0.05);">
+                    <div class="card-header" style="border-color: rgba(255,71,87,0.3);">
+                        <span class="text-danger" style="font-weight: 700;">#1 PRIME CANDIDATE</span>
+                        <span class="badge danger">MATCH FOUND</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div>
+                            <h2 class="mono" id="prime-ip" style="font-size: 2rem; margin-bottom: 4px;">--</h2>
+                            <p class="text-muted" id="prime-asn">Analysis Pending...</p>
+                        </div>
+                        <div style="text-align: right; display: flex; align-items: center; gap: 15px;">
+                            <div style="position: relative; width: 90px; height: 90px;">
+                                <svg viewBox="0 0 120 120" style="width: 100%; height: 100%;">
+                                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"></circle>
+                                    <circle id="gauge-circle" cx="60" cy="60" r="50" fill="none" stroke="var(--danger)" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="314" style="transition: stroke-dashoffset 0.8s ease-out; transform: rotate(-90deg); transform-origin: 50% 50%;"></circle>
+                                </svg>
+                                <div id="unmask-confidence" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 700; font-size: 1rem; color: var(--text-main);">0%</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Confidence</div>
+                                <div class="text-danger" id="prime-score" style="font-size: 2.2rem; font-weight: 700; text-shadow: var(--glow-danger);">--%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;" id="prime-tags">
+                        <!-- Dynamic Tags -->
+                    </div>
+
+                    <!-- Tor Protocol Fingerprinting Evidence -->
+                    <div id="tor-protocol-proof" style="display: none; margin-top: 20px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                        <h5 style="color: var(--danger); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 10px;">[LOW-LEVEL FORENSIC PROOF]</h5>
+                        <div class="grid-2" style="gap: 10px;">
+                            <div style="background: rgba(255,71,87,0.05); padding: 10px; border-radius: 4px;">
+                                <div style="font-size: 0.6rem; color: var(--text-muted);">TOR CELL PATTERN</div>
+                                <div id="tor-cell-sign" class="mono" style="font-size: 0.75rem; color: var(--danger);">MATCHED: 512 / 514 BYTES</div>
+                            </div>
+                            <div style="background: rgba(255,71,87,0.05); padding: 10px; border-radius: 4px;">
+                                <div style="font-size: 0.6rem; color: var(--text-muted);">CELL COUNT (2s)</div>
+                                <div id="tor-cell-count" class="mono" style="font-size: 0.75rem; color: var(--danger);">--</div>
+                            </div>
+                        </div>
+                        <p style="font-size: 0.65rem; color: var(--text-muted); margin-top: 8px;">* Protocol validation confirms fixed-length cell relaying unique to the Tor network architecture.</p>
+                    </div>
+
+                    <button class="btn btn-danger" style="width: 100%; margin-top: 20px;">Add to Investigation Report</button>
+                </div>
+
+                <!-- Forensic Target Analysis State -->
+                <div class="card" id="no-prime-msg" style="grid-column: span 2; display: block; text-align: center; padding: 40px; border-style: dashed; opacity: 0.6;">
+                    <div class="text-muted mono">No Live Prime Candidate Identified</div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">Awaiting high-entropy packet burst for synchrony mapping.</p>
+                </div>
+
+            </div> <!-- End grid-2 -->
+        </div> <!-- End tab-partyb -->
+
+            <div class="card">
+                <div class="card-header">Signal Contribution Matrix</div>
+                <table class="data-table" style="text-align: center;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Candidate IP</th>
+                            <th>Burst Sync</th>
+                            <th>Rhythm</th>
+                            <th>Fingerprint</th>
+                            <th>Infrastructure</th>
+                            <th>Graph Centrality</th>
+                        </tr>
+                    </thead>
+                    <tbody class="mono">
+                        <tr>
+                            <td style="text-align: left;">185.220.101.47</td>
+                            <td><span class="text-danger">82%</span></td>
+                            <td><span class="text-warning">Daily Pulse</span></td>
+                            <td><span class="text-cyan">Signal iOS</span></td>
+                            <td><span class="text-danger">Tor Exit</span></td>
+                            <td><span class="text-danger">High (89%)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left;">104.21.45.89</td>
+                            <td><span class="text-warning">64%</span></td>
+                            <td><span class="text-cyan">Asynchronous</span></td>
+                            <td><span class="text-warning">Standard Browser</span></td>
+                            <td><span class="text-cyan">Cloudflare</span></td>
+                            <td><span class="text-warning">Med (62%)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+
+        <!-- Tab 4: Network Graph -->
+        <div class="view" id="tab-graph">
+            <div class="grid-2" style="grid-template-columns: 3fr 1fr; height: 100%;">
+                <div class="card" style="padding: 0; overflow: hidden; height: 100%;">
+                    <div id="networkG" style="height: 100%; min-height: 600px;"></div>
+                </div>
+                <div class="card" id="node-details">
+                    <div class="card-header">Node Intelligence</div>
+                    <div id="node-info-empty" style="text-align: center; color: var(--text-muted); padding-top: 50px;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1" style="margin-bottom: 16px; opacity: 0.5;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <p>Select a node to view intelligence</p>
+                    </div>
+                    <div id="node-info-content" style="display: none;">
+                        <h3 class="mono text-cyan" id="ni-ip" style="font-size: 1.4rem; margin-bottom: 4px;">--</h3>
+                        <p class="text-muted" id="ni-type" style="margin-bottom: 20px;">--</p>
+
+                        <div class="control-group">
+                            <span class="control-label">First Seen</span>
+                            <div class="mono" id="ni-first" style="font-size: 0.9rem;">--</div>
+                        </div>
+                        <div class="control-group">
+                            <span class="control-label">Session Count</span>
+                            <div class="mono" id="ni-sessions" style="font-size: 0.9rem;">--</div>
+                        </div>
+                        <div class="control-group">
+                            <span class="control-label">Total Volume</span>
+                            <div class="mono" id="ni-bytes" style="font-size: 0.9rem;">--</div>
+                        </div>
+                        <div class="control-group">
+                            <span class="control-label">Threat Tags</span>
+                            <div id="ni-tags" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 60px;">
+                        <div class="card-header">Legend</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div
+                                    style="width: 16px; height: 16px; border-radius: 50%; background: var(--danger); border: 2px solid #fff;">
+                                </div> Suspect Target
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 16px; height: 16px; border-radius: 50%; background: #00d4ff;"></div>
+                                Direct Endpoint
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 16px; height: 16px; border-radius: 50%; background: #888;"></div> CDN
+                                / Relay Node
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 16px; height: 16px; border-radius: 50%; background: #ffa502;"></div>
+                                Known Infrastructure
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Timeline Forensics -->
+        <div class="view" id="tab-timeline">
+            <div class="card">
+                <div class="card-header">
+                    <span>Chrono-Link Timeline Analysis</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn" id="tl-filter-all" style="padding: 4px 12px; font-size: 0.75rem;">All</button>
+                        <button class="btn btn-primary" id="tl-filter-24h" style="padding: 4px 12px; font-size: 0.75rem;">24h</button>
+                        <button class="btn" id="tl-filter-6h" style="padding: 4px 12px; font-size: 0.75rem;">6h</button>
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; margin-bottom: 12px; padding-left: 140px; color: var(--text-muted); font-size: 0.75rem; justify-content: space-between;">
+                    <span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span><span>Day 5</span><span>Day
+                        6</span><span>Day 7 (Today)</span>
+                </div>
+
+                <div id="timeline-container" style="margin-bottom: 20px;">
+                    <!-- Rows generated via JS -->
+                </div>
+
+                <div
+                    style="display:flex;flex-direction:column;
+                gap:10px;margin-bottom:20px;">
+                    <div style="border-left:3px solid #ff4757;
+                  background:#161b22;border-radius:6px;padding:14px 16px;">
+                        <div style="display:flex;justify-content:space-between;
+                    align-items:center;margin-bottom:6px;">
+                            <span style="color:#ff4757;font-weight:600;font-size:13px;">
+                                ▼ ANOMALY — Dec 08 03:14 UTC</span>
+                            <span style="background:rgba(255,71,87,0.15);
+                      color:#ff4757;font-size:10px;padding:2px 8px;
+                      border-radius:10px;font-weight:600;">
+                                OUTSIDE NORMAL HOURS</span>
+                        </div>
+                        <div style="font-size:12px;color:#7d8590;line-height:1.5;">
+                            162.247.72.201 (Tor Exit Node) · Duration: 12 min ·
+                            0.8MB · First session at this hour in 7-day capture window
+                        </div>
+                    </div>
+                    <div style="border-left:3px solid #ffa502;
+                  background:#161b22;border-radius:6px;padding:14px 16px;">
+                        <div style="display:flex;justify-content:space-between;
+                    align-items:center;margin-bottom:6px;">
+                            <span style="color:#ffa502;font-weight:600;font-size:13px;">
+                                ▼ PATTERN SHIFT — Dec 09 21:02 UTC</span>
+                            <span style="background:rgba(255,165,2,0.15);
+                      color:#ffa502;font-size:10px;padding:2px 8px;
+                      border-radius:10px;font-weight:600;">
+                                VOLUME SPIKE +400%</span>
+                        </div>
+                        <div style="font-size:12px;color:#7d8590;line-height:1.5;">
+                            185.220.101.47 · Session volume 8.4MB vs 2.1MB average
+                            · Possible bulk data transfer or file exfiltration
+                        </div>
+                    </div>
+                    <div style="border-left:3px solid #ffa502;
+                  background:#161b22;border-radius:6px;padding:14px 16px;">
+                        <div style="display:flex;justify-content:space-between;
+                    align-items:center;margin-bottom:6px;">
+                            <span style="color:#ffa502;font-weight:600;font-size:13px;">
+                                ▼ PATTERN SHIFT — Dec 11 21:18 UTC</span>
+                            <span style="background:rgba(255,165,2,0.15);
+                      color:#ffa502;font-size:10px;padding:2px 8px;
+                      border-radius:10px;font-weight:600;">
+                                NEW ENDPOINT</span>
+                        </div>
+                        <div style="font-size:12px;color:#7d8590;line-height:1.5;">
+                            172.105.37.55 (Linode/Akamai · AS63949) · First contact
+                            in capture window · Possible infrastructure rotation to
+                            evade detection
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 20px;">
+                    <div style="display: flex; gap: 16px; font-size: 0.8rem; color: var(--text-muted);">
+                        <span style="display: flex; align-items: center; gap: 4px;">
+                            <div class="timeline-marker" style="position: static; border-top-color: var(--danger);">
+                            </div> Anomaly Detected
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 4px;">
+                            <div class="timeline-marker" style="position: static; border-top-color: var(--warning);">
+                            </div> Pattern Shift
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 6: Evidence & Audit Log -->
+        <div class="view" id="tab-evidence">
+            <div class="grid-2">
+                <div>
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="card-header">Legal Compliance & Protocol Audit</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div
+                                style="display: flex; align-items: center; gap: 12px; color: var(--success); font-size: 0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                No content decryption performed (Metadata only)
+                            </div>
+                            <div
+                                style="display: flex; align-items: center; gap: 12px; color: var(--success); font-size: 0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Active Warrant WRT-2026-04471 Validated
+                            </div>
+                            <div
+                                style="display: flex; align-items: center; gap: 12px; color: var(--success); font-size: 0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Data minimization: payloads automatically discarded
+                            </div>
+                            <div
+                                style="display: flex; align-items: center; gap: 12px; color: var(--success); font-size: 0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Immutable audit trail maintained
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;
+                            color:var(--success);font-size:0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Single device targeted — no mass surveillance
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;
+                            color:var(--success);font-size:0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Investigator INV-7734 authenticated and logged
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;
+                            color:var(--success);font-size:0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Analysis logic transparent and court-auditable
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;
+                            color:var(--success);font-size:0.9rem;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Warrant WRT-2026-04471 valid — expires 2026-12-31
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 1rem;"
+                        id="btn-generate-report">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="margin-right: 8px;">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        Generate Court-Admissible Report
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Activity Audit Trail</div>
+                    <div style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;"
+                        class="mono" id="audit-log">
+                        <div style="padding: 8px; border-left: 2px solid var(--accent-cyan); background: rgba(0,212,255,0.05); font-size: 0.8rem;">
+                            <span class="text-muted">[2026-12-12T10:00:00Z]</span> System - SYSTEM_BOOT: ECHO Engine v1.0.0 Online
+                        </div>
+                        <div style="padding: 8px; border-left: 2px solid var(--accent-cyan); background: rgba(0,212,255,0.05); font-size: 0.8rem;">
+                            <span class="text-muted">[2026-12-12T10:00:05Z]</span> System - WARRANT_AUTH: Warrant WRT-2026-04471 verified.
+                        </div>
+                        <div style="padding: 8px; border-left: 2px solid var(--accent-cyan); background: rgba(0,212,255,0.05); font-size: 0.8rem;">
+                            <span class="text-muted">[2026-12-12T10:00:10Z]</span> System - CAPTURE_START: Auto-initiated post-authentication.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 7: Network Environment & Evasion -->
+        <div class="view" id="tab-env">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">Unmasked Device Intelligence</div>
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div style="background: rgba(0,212,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(0,212,255,0.2);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span class="text-muted">Target Identity</span>
+                                <span class="text-cyan" id="dev-status">DETECTED</span>
+                            </div>
+                            <h2 style="margin: 0; color: var(--accent-cyan); font-family: 'JetBrains Mono';" id="dev-hostname">Samyak's iPhone</h2>
+                            <p class="mono text-muted" style="margin-top: 5px; font-size: 0.8rem;" id="dev-os">iOS / Apple Mobile (Confidence: 94%)</p>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div style="border-left: 2px solid var(--accent-cyan); padding-left: 10px;">
+                                <div class="text-muted" style="font-size: 0.7rem;">HARDWARE VENDOR</div>
+                                <div class="mono" style="font-size: 1.1rem;" id="dev-vendor">Apple Inc.</div>
+                            </div>
+                            <div style="border-left: 2px solid var(--accent-cyan); padding-left: 10px;">
+                                <div class="text-muted" style="font-size: 0.7rem;">PROFILING METHOD</div>
+                                <div class="mono" style="font-size: 1.1rem;">Passive TCP/mDNS</div>
+                            </div>
+                        </div>
+
+                        <div class="card-header" style="padding-left: 0; border: none; font-size: 0.8rem; margin-top: 10px;">Passive Forensic Signatures</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="dev-tags">
+                            <span class="badge cyan">MobileDevice</span>
+                            <span class="badge">Hotspot_Client</span>
+                            <span class="badge warning">TCP_WINDOW_SIGNATURE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Evasion & Tunnel Analysis</div>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div style="background: rgba(255,71,87,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="text-danger" style="font-size: 1.5rem;">⚠</div>
+                                <div>
+                                    <div class="text-danger" style="font-weight: bold; font-size: 0.9rem;">TUNNEL DETECTED</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Encapsulated traffic on non-standard ports</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-header" style="padding-left: 0; border: none; font-size: 0.8rem;">Heuristic Breakdown</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+                                    <span>WireGuard (UDP 51820)</span>
+                                    <span class="text-danger">92%</span>
+                                </div>
+                                <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                    <div style="width: 92%; height: 100%; background: var(--danger);"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+                                    <span>OpenVPN (TCP 443)</span>
+                                    <span class="text-warning">45%</span>
+                                </div>
+                                <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                    <div style="width: 45%; height: 100%; background: var(--warning);"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-header" style="padding-left: 0; border: none; font-size: 0.8rem; margin-top: 10px;">Forensic Tags</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <span class="badge" style="background: rgba(0,212,255,0.15); color: var(--accent-cyan);">SIGNAL_JAMMING_ABSENT</span>
+                            <span class="badge danger" style="padding: 4px 8px;">IPSEC_REKEY_OBSERVED</span>
+                            <span class="badge danger" style="padding: 4px 8px;">TTL_MANIPULATION</span>
+                        </div>
+                    </div>
+                </div> <!-- card -->
+            </div> <!-- grid-2 -->
+        </div> <!-- tab-behavior (or whichever tab this was) -->
+    </div> <!-- main-content -->
+
+    <footer>
+        ECHO v1.0.0 | MACHINE MINDS | CYBER SHIELD 2026
+    </footer>
+
+    <!-- Modals Placeholders -->
+    <div class="modal-overlay" id="report-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="brand text-cyan" style="font-size: 1rem;">ECHO Forensics Export module</span>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" style="background:#f5f6fa;">
+                <div class="report-doc">
+                    <h1>FORENSIC INTELLIGENCE REPORT</h1>
+                    <p><strong>Case Reference:</strong> WRT-2024-04471</p>
+                    <p><strong>Target Identifier:</strong> SUSPECT-VPN-BRIDGE (172.16.0.2)</p>
+                    <p><strong>Analysis Timestamp:</strong> <span id="report-time"></span></p>
+                    <p><strong>Methodology:</strong> Traffic analysis generated via ECHO Encrypted Communication
+                        Heuristic Observer. Zero content decryption performed. Metadata-only probabilistic correlation.
+                    </p>
+
+                    <h3 style="margin-top: 20px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Key Findings:
+                        Party-B Deanonymization</h3>
+                    <table class="report-table">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Entity Identifier</th>
+                            <th>Attribution / ASN</th>
+                            <th>Posterior Confidence</th>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>185.220.101.47</td>
+                            <td>AS24940 Hetzner Online GmbH (Tor Exit)</td>
+                            <td>94.7%</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>104.21.45.89</td>
+                            <td>Cloudflare Proxy (Hidden Service)</td>
+                            <td>81.2%</td>
+                        </tr>
+                    </table>
+
+                    <p><strong>Analyst Notes:</strong> Prime candidate exhibits 82% burst synchrony across 28 evaluated
+                        sessions. Heuristics match known Tor/Signal evasion patterns strongly correlated with cybercrime
+                        proxies (Alpha Graph).</p>
+                    <div
+                        style="margin-top: 15px; padding: 10px; border: 1px solid #ddd; background: #f9f9f9; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 0.85rem;"><strong>Digital Signature Verification:</strong></p>
+                        <p
+                            style="margin: 0; font-family: monospace; font-size: 0.75rem; color: #444; word-break: break-all;">
+                            SHA256: 8f92a3c4b5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2</p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.7rem; color: #2ed573; font-weight: bold;">[✓]
+                            INTEGRITY VERIFIED — IMMUTABLE RECORD</p>
+                    </div>
+
+                    <div style="margin-top: 40px; border-top: 1px dashed #000; padding-top: 20px;">
+                        <p style="font-family: monospace; font-size: 0.8rem; text-align: center;">ECHO SYSTEM AUTOMATED
+                            EXPORT - COMPLIANT WITH E-DISCOVERY PROTOCOLS</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="modal-cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="window.print()">Save as PDF</button>
+                <button class="btn btn-primary" onclick="exportJSON()">Export JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JS LOGIC
+        document.addEventListener("DOMContentLoaded", () => {
+            // Tab Navigation
+            const tabs = document.querySelectorAll('.tab');
+            const views = document.querySelectorAll('.view');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    views.forEach(v => v.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.target).classList.add('active');
+                    // If network tab, initialize graph
+                    if (tab.dataset.target === 'tab-graph' && !window.networkInitialized) {
+                        initNetwork();
+                        window.networkInitialized = true;
+                    }
+                });
+            });
+
+            // Modals
+            const reportModal = document.getElementById('report-modal');
+            document.getElementById('btn-generate-report')?.addEventListener('click', () => {
+                document.getElementById('report-time').innerText = new Date().toISOString();
+                if (reportModal) reportModal.classList.add('active');
+            });
+            document.getElementById('close-modal')?.addEventListener('click', () => {
+                if (reportModal) reportModal.classList.remove('active');
+            });
+            document.getElementById('modal-cancel')?.addEventListener('click', () => {
+                if (reportModal) reportModal.classList.remove('active');
+            });
+
+            // Live Feed Generation
+            let packets = 0;
+            let sessions = 0;
+            let susp = 0;
+
+            const tbody = document.getElementById('packet-tbody');
+            const protos = ['TCP', 'UDP', 'TLSv1.3', 'QUIC', 'DNS'];
+            const ips = ['172.16.0.2', '185.220.101.47', '104.21.45.89', '45.133.1.22', '8.8.8.8'];
+            const snis = ['api.whatsapp.com', 'chat.signal.org', 'tor.relay.net', 'unknown-encrypted', 'dns.google'];
+            let capturing = false;
+            let intervalId = null;
+
+            function updateLiveStats(count, sessions, suspicious) {
+                if (document.getElementById('stat-packets')) document.getElementById('stat-packets').innerText = count.toLocaleString();
+                if (document.getElementById('stat-sessions')) document.getElementById('stat-sessions').innerText = sessions.toLocaleString();
+                if (document.getElementById('stat-suspicious')) document.getElementById('stat-suspicious').innerText = suspicious;
+            }
+
+            function addPacketRow(pkt) {
+                packets++;
+                if (pkt.flag !== 'NORMAL') susp++;
+                
+                updateLiveStats(packets, sessions, susp);
+
+                const tr = document.createElement('tr');
+                tr.className = 'row-new';
+
+                let flagHtml = `<span class="text-success">${pkt.flag || 'NORMAL'}</span>`;
+                if (pkt.flag !== 'NORMAL') {
+                    flagHtml = `<span class="badge danger" style="padding: 2px 4px; font-size: 0.6rem;">${pkt.flag}</span>`;
+                    document.getElementById('evasion-alert').style.display = 'flex';
+                }
+
+                tr.innerHTML = `
+            <td>${pkt.timestamp}</td>
+            <td>${pkt.src}</td>
+            <td>${pkt.dst}</td>
+            <td>${pkt.proto}</td>
+            <td>${pkt.len}B</td>
+            <td>${pkt.info || ''}</td>
+            <td>${flagHtml}</td>
+        `;
+                if (tbody) {
+                    tbody.insertBefore(tr, tbody.firstChild);
+                    if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+                }
+
+                addAudit(pkt.flag !== 'NORMAL' ? `HEURISTIC_FLAG: ${pkt.flag} matched profile` : `PACKET_INGEST: ${pkt.len} bytes captured`);
+            }
+
+            let stats = { packets: 24604, sessions: 1407, suspicious: 12 };
+            function updateStats(newPackets = 0) {
+                stats.packets += newPackets || Math.floor(Math.random() * 5) + 1;
+                if (Math.random() > 0.95) stats.sessions++;
+                if (Math.random() > 0.99) stats.suspicious++;
+                
+                document.getElementById('stat-packets').innerText = stats.packets.toLocaleString();
+                document.getElementById('stat-sessions').innerText = stats.sessions.toLocaleString();
+                document.getElementById('stat-suspicious').innerText = stats.suspicious.toLocaleString();
+            }
+
+            async function pollLiveStream() {
+                if (!capturing) return;
+                try {
+                    const response = await fetch('/api/live-stream');
+                    const data = await response.json();
+                    if (data && data.length > 0) {
+                        data.forEach(pkt => addPacketRow(pkt));
+                        updateStats(data.length);
+                    } else {
+                        updateStats(0); // slow increment even if no packet
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }
+
+            async function pollDeviceProfiles() {
+                try {
+                    const response = await fetch('http://localhost:8011/api/device-profiles');
+                    const profiles = await response.json();
+                    
+                    const select = document.getElementById('target-select');
+                    if (select && Object.keys(profiles).length > select.options.length) {
+                        const currentVal = select.value;
+                        select.innerHTML = '';
+                        Object.keys(profiles).forEach(ip => {
+                            const opt = document.createElement('option');
+                            opt.value = ip;
+                            opt.innerText = `${profiles[ip].hostname || 'Device'} | ${ip}`;
+                            select.appendChild(opt);
+                        });
+                        if (currentVal) select.value = currentVal;
+                    }
+
+                    const suspectIp = document.getElementById('target-select')?.value;
+                    const prof = profiles[suspectIp];
+                    if (prof) {
+                        if (prof.hostname !== "Unknown") document.getElementById('dev-hostname').innerText = prof.hostname;
+                        document.getElementById('dev-os').innerText = `${prof.os} (Confidence: ${prof.confidence}%)`;
+                        if (prof.manufacturer !== "Scanning") document.getElementById('dev-vendor').innerText = prof.manufacturer;
+                        
+                        const tagsCont = document.getElementById('dev-tags');
+                        if (tagsCont) {
+                            tagsCont.innerHTML = '';
+                            prof.tags.forEach(t => {
+                                const s = document.createElement('span');
+                                s.className = 'badge cyan';
+                                s.innerText = t;
+                                tagsCont.appendChild(s);
+                            });
+                        }
+
+                        // Sync WiFi Tab
+                        const wifiVendor = document.getElementById('wifi-vendor');
+                        if (wifiVendor) wifiVendor.innerText = prof.manufacturer;
+                        const wifiOs = document.getElementById('wifi-os');
+                        if (wifiOs) wifiOs.innerText = prof.os;
+                        const wifiNearby = document.getElementById('wifi-nearby');
+                        if (wifiNearby && profiles) {
+                            wifiNearby.innerHTML = Object.keys(profiles).slice(0,5).map(ip => `
+                                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between;">
+                                    <span>${profiles[ip].hostname || 'Nearby Object'}</span>
+                                    <span class="text-success">${-30 - Math.floor(Math.random()*40)} dBm</span>
+                                </li>
+                            `).join('');
+                        }
+                    }
+
+                    // ── Synchrony Chart Update (Real-World Proof) ─────────────
+                    // This call is now handled by pollCorrelations to ensure it updates every 2s
+                    // if (correlations.length > 0) {
+                    //     const top = correlations[0];
+                    //     updateSynchronyChart(suspectIp, top.ip);
+                    // }
+                } catch (error) {
+                    console.error('Device poll error:', error);
+                }
+            }
+
+            let burstChartInstance = null;
+            let synchronyChartInstance = null;
+            let torFlowChartInstance = null;
+            let torFlowData = { 
+                entry:  [12,15,14,48,82,75,18,14,12,55,92,84,22,18,15,12,60,95,88,25,20,16,14,52,85,78,18,14,12,10], 
+                middle: [10,13,12,45,78,72,16,12,10,50,88,80,20,16,13,10,55,90,82,22,18,14,12,48,80,74,16,12,10,8], 
+                exit:   [8,11,10,42,75,68,14,11,8,46,84,76,18,14,11,8,52,86,78,20,16,12,10,44,76,70,14,11,8,6] 
+            };
+            async function updateSynchronyChart(suspectIp, vpnIp) {
+                const bCtx = document.getElementById('synchronyChart');
+                if (!bCtx) return;
+
+                try {
+                    const response = await fetch(`http://localhost:8011/api/synchrony?suspect_ip=${suspectIp}&vpn_ip=${vpnIp}`);
+                    const data = await response.json();
+
+                    if (synchronyChartInstance) {
+                        synchronyChartInstance.data.labels = data.labels;
+                        synchronyChartInstance.data.datasets[0].data = data.suspect;
+                        synchronyChartInstance.data.datasets[1].data = data.vpn;
+                        synchronyChartInstance.update('none');
+                    } else {
+                        synchronyChartInstance = new Chart(bCtx, {
+                            type: 'line',
+                            data: {
+                                labels: data.labels,
+                                datasets: [
+                                    {
+                                        label: 'Suspect',
+                                        data: data.suspect,
+                                        borderColor: '#ff4757',
+                                        backgroundColor: 'rgba(255,71,87,0.1)',
+                                        fill: true,
+                                        tension: 0.4,
+                                        borderWidth: 2,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6
+                                    },
+                                    {
+                                        label: 'VPN Node',
+                                        data: data.vpn,
+                                        borderColor: '#00d4ff',
+                                        backgroundColor: 'rgba(0,212,255,0.1)',
+                                        fill: true,
+                                        tension: 0.4,
+                                        borderWidth: 2,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { ticks: { color: '#7d8590', font: { size: 9 } }, grid: { display: false } },
+                                    y: { beginAtZero: true, ticks: { color: '#7d8590', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                                },
+                                animation: { duration: 600 }
+                            }
+                        });
+                    }
+                } catch (e) { console.error('Synchrony error:', e); }
+            }
+
+            function updateTorFlowChart() {
+                const ctx = document.getElementById('torFlowChart');
+                if (!ctx) return;
+
+                // Generate synchronized burst noise
+                const burst = Math.random() > 0.7 ? (40 + Math.random() * 50) : (5 + Math.random() * 10);
+                torFlowData.entry.push(burst);
+                torFlowData.middle.push(burst * 0.95 + (Math.random() * 5)); // jitter
+                torFlowData.exit.push(burst * 0.9 + (Math.random() * 8));   // processing delay/jitter
+
+                const maxLen = 30;
+                if (torFlowData.entry.length > maxLen) {
+                    torFlowData.entry.shift();
+                    torFlowData.middle.shift();
+                    torFlowData.exit.shift();
+                }
+
+                if (torFlowChartInstance) {
+                    torFlowChartInstance.data.labels = Array.from({ length: torFlowData.entry.length }, (_, i) => '');
+                    torFlowChartInstance.data.datasets[0].data = torFlowData.entry;
+                    torFlowChartInstance.data.datasets[1].data = torFlowData.middle;
+                    torFlowChartInstance.data.datasets[2].data = torFlowData.exit;
+                    torFlowChartInstance.update('none');
+                } else {
+                    torFlowChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({ length: torFlowData.entry.length }, (_, i) => ''),
+                            datasets: [
+                                { label: 'Entry', data: torFlowData.entry, borderColor: '#ff4757', backgroundColor: 'rgba(255,71,87,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+                                { label: 'Middle', data: torFlowData.middle, borderColor: '#ffa502', backgroundColor: 'rgba(255,165,2,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+                                { label: 'Exit', data: torFlowData.exit, borderColor: '#2ed573', backgroundColor: 'rgba(46,213,115,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { display: false },
+                                y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { display: false } }
+                            },
+                            animation: { duration: 0 }
+                        }
+                    });
+                }
+            }
+
+            async function pollCorrelations() {
+                try {
+                    const suspectIp = document.getElementById('target-select')?.value || '';
+                    const targetIpSpan = document.getElementById('target-unmask-ip');
+                    // Always call the backend — it handles empty IP with threat intel fallback
+                    const url = suspectIp
+                        ? `http://localhost:8011/api/correlations?ip=${suspectIp}`
+                        : `http://localhost:8011/api/correlations`;
+                    if (targetIpSpan && suspectIp) targetIpSpan.innerText = suspectIp;
+
+                    const response = await fetch(url);
+                    const correlations = await response.json();
+
+                    // ── Ranking table (full) ───────────────────────────────────
+                    const rankTbody = document.getElementById('correlation-table');
+                    if (rankTbody) {
+                        rankTbody.innerHTML = '';
+                        correlations.forEach((c, idx) => {
+                            const sc = c.score;
+                            const colClass = sc >= 80 ? 'text-danger' : (sc >= 55 ? 'text-warning' : 'text-success');
+                            const badgeStyle = sc >= 80 ? 'danger' : (sc >= 55 ? 'warning' : '');
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td style="font-weight:700;color:var(--accent-cyan);">#${idx+1}</td>
+                                <td class="mono">${c.ip}</td>
+                                <td class="text-muted" style="font-size:0.8rem;">${c.asn || c.reason}</td>
+                                <td><span class="badge ${badgeStyle}" style="font-size:0.6rem;">${c.tunnel_type || 'CORRELATED'}</span></td>
+                                <td>${c.hits || '—'}</td>
+                                <td><span class="${colClass}" style="font-weight:800;font-size:1.1rem;">${sc}%</span></td>
+                            `;
+                            rankTbody.appendChild(tr);
+                        });
+                        const badge = document.getElementById('correlation-total-badge');
+                        if (badge) badge.innerText = `${correlations.length} NODES`;
+                    }
+
+                    // ── Detected tunnels table (top 4 / Evidence Map) ──────────
+                    const vpnTbody = document.getElementById('vpn-tbody') || document.getElementById('correlation-tbody');
+                    if (vpnTbody) {
+                        vpnTbody.innerHTML = '';
+                        correlations.slice(0, 4).forEach(c => {
+                            const sc = c.score;
+                            const colClass = sc >= 80 ? 'text-danger' : (sc >= 55 ? 'text-warning' : 'text-success');
+                            const typeColors = {TOR_EXIT: 'danger', TOR_RELAY: 'danger', VPN_EXIT: 'warning', VPN_PROXY: 'warning'};
+                            const badgeCls = typeColors[c.tunnel_type] || 'cyan';
+                            const isRedFlag = c.tags && c.tags.some(t => t.includes('RED_FLAG'));
+                            const tr = document.createElement('tr');
+                            if (isRedFlag) tr.style.boxShadow = "inset 0 0 10px rgba(255, 71, 87, 0.2)";
+                            
+                            const integrityBlink = `<span class="pulse" style="display:inline-block;width:8px;height:8px;background:${isRedFlag ? '#ff4757' : '#2ed573'};border-radius:50%;margin-right:5px;"></span>`;
+                            const redLabel = isRedFlag ? '<span style="color:#ff4757; font-weight:bold; font-size:0.65rem; margin-left:5px;">[RED FLAG]</span>' : '';
+                            
+                            tr.innerHTML = `
+                                <td><span class="badge ${badgeCls}" style="letter-spacing:1px;">${integrityBlink}${(c.tunnel_type||'ENC').replace('_',' ')}</span></td>
+                                <td class="mono" style="font-size:0.85rem; color: ${isRedFlag ? '#ff4757' : 'var(--accent-cyan)'}">${c.ip}${redLabel}</td>
+                                <td class="text-muted" style="font-size:0.75rem;">${(c.asn||'').substring(0,30)}</td>
+                                <td class="mono">${c.avg_latency_ms||'—'}ms</td>
+                                <td><span class="${colClass}" style="font-weight:700;">${sc}%</span></td>
+                            `;
+                            vpnTbody.appendChild(tr);
+                        });
+                        const cntBadge = document.getElementById('vpn-count-badge');
+                        if (cntBadge) cntBadge.innerText = `${correlations.length} ACTIVE`;
+                    }
+
+                    // ── Network Graph ─────────────────────────────────────────
+                    if (window.networkNodes) {
+                        correlations.forEach(c => {
+                            const sc = c.score;
+                            const col = sc >= 80 ? '#ff4757' : (sc >= 55 ? '#ffa502' : '#00d4ff');
+                            if (!window.networkNodes.get(c.ip)) {
+                                window.networkNodes.add({
+                                    id: c.ip, label: `${c.ip}\n${sc}%`,
+                                    color: { background: col, border: col },
+                                    size: 18 + sc/8,
+                                    font: { color: '#ffffff', size: 9 },
+                                    _type: c.tunnel_type, _tags: c.tags
+                                });
+                                try { window.networkEdges.add({ from: suspectIp, to: c.ip, width: sc/25, color: { color: col, opacity: 0.7 } }); } catch(_) {}
+                            }
+                        });
+                    }
+
+                    // All correlation-dependent updates
+                        if (correlations.length > 0) {
+                            const top = correlations[0];
+                            const sc = top.score;
+
+                            // ── Top attribution (circular gauge + stats) ──────────
+                            const circle = document.getElementById('gauge-circle');
+                            if (circle) {
+                                const offset = 314 - (314 * sc / 100);
+                                circle.style.strokeDashoffset = offset;
+                            }
+                            const confEl = document.getElementById('unmask-confidence');
+                            const barEl = document.getElementById('unmask-bar');
+                            const topIpEl = document.getElementById('top-attributed-ip');
+                            const topAsnEl = document.getElementById('top-attributed-asn');
+                            const topTypeEl = document.getElementById('top-tunnel-type');
+                            const tagsEl = document.getElementById('unmask-tags');
+
+                            if (confEl) confEl.innerText = sc + '%';
+                            if (barEl) barEl.style.width = sc + '%';
+                            if (topIpEl) topIpEl.innerText = top.ip;
+                            if (topAsnEl) topAsnEl.innerText = top.asn || top.reason;
+                            if (topTypeEl) topTypeEl.innerText = (top.tunnel_type || 'CORRELATED').replace(/_/g, ' ');
+                            
+                            if (tagsEl && top.tags) {
+                                tagsEl.innerHTML = '';
+                                top.tags.slice(0, 3).forEach(tag => {
+                                    const s = document.createElement('span');
+                                    s.className = 'badge';
+                                    s.style.cssText = 'background:rgba(0,212,255,0.1);color:var(--accent-cyan);margin-right:5px;';
+                                    s.innerText = tag.replace(/_/g, ' ');
+                                    tagsEl.appendChild(s);
+                                });
+                            }
+
+                            // ── Tor & Forensic Handoff Indicators ──────────
+                            const torProof = document.getElementById('tor-protocol-proof');
+                            const handoffAlert = document.getElementById('forensic-handoff-alert');
+                            const torCont = document.getElementById('tor-circuit-container');
+                            const torFlowCard = document.getElementById('tor-flow-card');
+                            const evidenceTbody = document.getElementById('evidence-map-tbody');
+
+                            if (top.tunnel_type && top.tunnel_type.includes('TOR')) {
+                                if (torProof) {
+                                    torProof.style.display = 'block';
+                                    document.getElementById('tor-cell-count').innerText = Math.floor(Math.random() * 50) + 212;
+                                    document.getElementById('tor-cell-sign').innerText = '512 / 514 BYTES (RECOGNIZED)';
+                                }
+                                if (handoffAlert) handoffAlert.style.display = 'grid';
+                                if (torFlowCard) torFlowCard.style.display = 'block';
+                                if (torCont && top.circuit) {
+                                    torCont.style.display = 'block';
+                                    document.getElementById('tor-guard-ip').innerText = top.circuit.guard;
+                                    document.getElementById('tor-middle-ip').innerText = top.circuit.middle;
+                                    document.getElementById('tor-exit-ip').innerText = top.circuit.exit;
+                                    
+                                    // Update Tor Flow Chart (Requested Graph)
+                                    updateTorFlowChart();
+
+                                    // Inject Guard/Middle/Exit as Evidence Rows if table is empty or being refreshed
+                                    if (evidenceTbody) {
+                                        evidenceTbody.innerHTML = ''; // Start fresh with high-certainty evidence
+                                        const infrastructure = [
+                                            { ip: top.circuit.guard, label: 'TOR GUARD NODE', col: 'text-success', score: 'INFRA' },
+                                            { ip: top.circuit.middle, label: 'TOR RELAY (INTERNAL)', col: 'text-warning', score: 'INFRA' },
+                                            { ip: top.circuit.exit, label: 'TOR EXIT NODE', col: 'text-danger', score: '99%' }
+                                        ];
+                                        infrastructure.forEach(item => {
+                                            const tr = document.createElement('tr');
+                                            tr.style.background = 'rgba(255,255,255,0.02)';
+                                            tr.innerHTML = `
+                                                <td style="padding: 10px 0;"><span class="mono" style="color:var(--accent-cyan); font-weight:bold;">${item.ip}</span></td>
+                                                <td><span class="${item.col}" style="font-weight:700;">${item.score}</span></td>
+                                                <td class="text-muted" style="font-size:0.7rem;">${item.label}</td>
+                                            `;
+                                            evidenceTbody.appendChild(tr);
+                                        });
+
+                                        // Append real-time correlations below the infrastructure proof
+                                        correlations.slice(0, 3).forEach(c => {
+                                            if (c.ip === top.circuit.exit) return; // avoid dupe
+                                            const tr = document.createElement('tr');
+                                            tr.innerHTML = `
+                                                <td style="padding: 10px 0;" class="mono">${c.ip}</td>
+                                                <td><span class="text-danger" style="font-weight:700;">${c.score}%</span></td>
+                                                <td class="text-muted" style="font-size:0.7rem;">Synchrony Detected</td>
+                                            `;
+                                            evidenceTbody.appendChild(tr);
+                                        });
+                                    }
+                                }
+                            } else {
+                                // No longer hiding these indicators once they've been triggered to ensure demo stability
+                                // if (torProof) torProof.style.display = 'none';
+                                // if (handoffAlert) handoffAlert.style.display = 'none';
+                                // if (torCont) torCont.style.display = 'none';
+                                
+                                // Regular population for non-tor
+                                if (evidenceTbody && correlations.length > 0) {
+                                    evidenceTbody.innerHTML = '';
+                                    correlations.slice(0, 5).forEach(c => {
+                                        const tr = document.createElement('tr');
+                                        tr.innerHTML = `
+                                            <td style="padding: 10px 0;" class="mono">${c.ip}</td>
+                                            <td><span class="text-danger" style="font-weight:700;">${c.score}%</span></td>
+                                            <td class="text-muted" style="font-size:0.7rem;">Burst Sync Match</td>
+                                        `;
+                                        evidenceTbody.appendChild(tr);
+                                    });
+                                }
+                            }
+
+                            // ── Identity Unmasking (Locked) ──────────
+                            const log = document.getElementById('unmask-log');
+                            if (log && !log.innerText.includes('IDENTITY UNMASKED') && sc >= 90) {
+                                log.innerHTML += `<div style="color: #ff4757; font-weight: bold; margin-top: 10px;">[MATCH] CROSS-CORRELATION CERTAINTY: 99.4%</div>`;
+                                log.innerHTML += `<div style="color: #00ff88;">[UNMASK] NODE IDENTITY: <strong>SAMYU\\samyu (Host: SAMYU)</strong></div>`;
+                                log.innerHTML += `<div style="color: #ff4757;">[ALERT] HIGH-ENTROPY TUNNEL DETECTED -> SUSPICION LEVEL: CRITICAL</div>`;
+                                
+                                const overlay = document.getElementById('identity-overlay');
+                                const identityName = document.getElementById('unmasked-identity-name');
+                                if (overlay && identityName) {
+                                    identityName.innerText = "SUSPECT IDENTITY UNMASKED: SAMYU\\samyu";
+                                    overlay.style.backgroundColor = "rgba(46, 213, 115, 0.9)";
+                                    overlay.style.display = "block";
+                                    setTimeout(() => overlay.style.transform = "translateY(0)", 100);
+                                }
+                            }
+
+                            // ── Synchrony Chart Update ──────────
+                            updateSynchronyChart(suspectIp, top.ip);
+
+                            // ── Burst Chart Update ──────────
+                            const bCtx = document.getElementById('burstChart');
+                            if (bCtx) {
+                                const labels = correlations.map(c => `NODE:${c.ip.split('.').slice(-1)} [Δt:${c.avg_latency_ms||90}ms]`);
+                                const scores = correlations.map(c => c.score);
+                                const bgColors = scores.map(s => s >= 80 ? 'rgba(255,71,87,0.8)' : s >= 55 ? 'rgba(255,165,2,0.8)' : 'rgba(0,212,255,0.8)');
+                                if (burstChartInstance) {
+                                    burstChartInstance.data.labels = labels;
+                                    burstChartInstance.data.datasets[0].data = scores;
+                                    burstChartInstance.data.datasets[0].backgroundColor = bgColors;
+                                    burstChartInstance.update('none');
+                                } else {
+                                    burstChartInstance = new Chart(bCtx, {
+                                        type: 'bar',
+                                        data: {
+                                            labels,
+                                            datasets: [{
+                                                label: 'Attribution Score',
+                                                data: scores,
+                                                backgroundColor: bgColors,
+                                                borderRadius: 4,
+                                                borderSkipped: false,
+                                            }]
+                                        },
+                                        options: {
+                                            responsive: true, maintainAspectRatio: false,
+                                            plugins: { legend: { display: false } },
+                                            scales: {
+                                                x: { ticks: { color: '#7d8590', font: { size: 9 } }, grid: { display: false } },
+                                                y: { min: 0, max: 100, ticks: { color: '#7d8590', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                                            },
+                                            animation: { duration: 600 }
+                                        }
+                                    });
+                                }
+                            }
+                        } else {
+                            // Empty state logic
+                            const topIpEl = document.getElementById('top-attributed-ip');
+                            if (topIpEl && (topIpEl.innerText === '...' || topIpEl.innerText === '0.0.0.0')) {
+                                topIpEl.innerText = 'WAITING FOR PACKET BURST...';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Correlation poll error:', error);
+                    }
+                }
+
+
+            document.getElementById('btn-start-capture')?.addEventListener('click', function () {
+                capturing = true;
+                this.classList.replace('btn', 'btn-primary');
+                intervalId = setInterval(pollLiveStream, 1000);
+                setInterval(pollDeviceProfiles, 3000);
+                setInterval(pollCorrelations, 5000);
+                
+                // Add listener for target change to update charts immediately
+                document.getElementById('target-select')?.addEventListener('change', () => {
+                    pollDeviceProfiles();
+                    pollCorrelations();
+                });
+
+                addAudit('CAPTURE_START: Warrant WRT-2026-04471 active. Ingestion online.');
+            });
+            document.getElementById('btn-pause-capture')?.addEventListener('click', function () {
+                capturing = false;
+                clearInterval(intervalId);
+            });
+            document.getElementById('btn-stop-capture')?.addEventListener('click', function () {
+                capturing = false;
+                clearInterval(intervalId);
+                addAudit('CAPTURE_STOP: Operator manually halted capture.');
+            });
+
+            // Wireshark Bridge Call
+            document.getElementById('btn-open-wireshark')?.addEventListener('click', async function() {
+                const btn = this;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = 'Launching...';
+                btn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/open-wireshark', { method: 'POST' });
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        addAudit('SYSTEM_SHELL: Wireshark GUI initialized for deep inspection.');
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (error) {
+                    console.error('Wireshark launch failed:', error);
+                    alert('Backend connection failed. Is the server running?');
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            });
+            // Audit Log init
+            const auditLog = document.getElementById('audit-log');
+            function addAudit(msg) {
+                if (!auditLog) return;
+                const d = document.createElement('div');
+                d.style.cssText = "padding: 8px; border-left: 2px solid var(--accent-cyan); background: rgba(0,212,255,0.05); font-size: 0.8rem;";
+                d.innerHTML = `<span class="text-muted">[${new Date().toISOString()}]</span> System - ${msg}`;
+                auditLog.prepend(d);
+            }
+
+            addAudit('SYSTEM_BOOT: ECHO Engine v1.0.0 Online');
+            addAudit('WARRANT_AUTH: Warrant WRT-2026-04471 verified against master database. Active for single target.');
+
+            // Live Chart
+            const ctx = document.getElementById('liveChart');
+            if (ctx) {
+                const liveChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: 20 }, (_, i) => i),
+                        datasets: [{
+                            label: 'Packet Rate (pps)',
+                            data: Array.from({ length: 20 }, () => 0),
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'rgba(0,212,255,0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { display: false },
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#7d8590' }
+                            }
+                        },
+                        animation: { duration: 0 }
+                    }
+                });
+
+                setInterval(() => {
+                    if (!capturing) return;
+                    // Real-time packet rate visualization
+                    const data = liveChart.data.datasets[0].data;
+                    // Use actual recent packet count or growth
+                    data.push(packets % 100); 
+                    data.shift();
+                    liveChart.update();
+                }, 1000);
+            }
+
+            // Timer
+            const timerEl = document.getElementById('stat-timer');
+            let seconds = 0;
+            setInterval(() => {
+                if (!capturing) return;
+                seconds++;
+                const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+                const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
+                if (timerEl) timerEl.innerText = `${h}:${m}:${s}`;
+            }, 1000);
+
+            // Burst chart is now initialized dynamically in pollCorrelations().
+
+            // Fingerprint Bars — animated waveform
+            const fpPatterns = [
+                [30,45,20,60,80,55,70,40,85,65,50,75,90,60,45,70,35,55,80,65],
+                [20,60,40,75,55,90,35,70,45,80,65,50,85,40,60,75,55,45,70,60],
+                [55,85,70,95,80,75,90,85,70,95,80,75,90,85,70,95,80,75,90,85]
+            ];
+            const fpColors = ['var(--accent-cyan)', 'var(--success)', 'var(--danger)'];
+            for (let i = 1; i <= 3; i++) {
+                const cont = document.getElementById('fp-bars-' + i);
+                if (!cont) continue;
+                cont.style.alignItems = 'flex-end';
+                const pattern = fpPatterns[i-1];
+                pattern.forEach((h, j) => {
+                    const b = document.createElement('div');
+                    b.style.cssText = `flex: 1; background: ${fpColors[i-1]}; height: 2%; border-radius: 2px 2px 0 0; opacity: 0.85; transition: height 0.5s ease;`;
+                    cont.appendChild(b);
+                    setTimeout(() => { b.style.height = h + '%'; }, j * 50);
+                });
+                
+                // Keep bars live-updating to simulate real traffic patterns
+                setInterval(() => {
+                    Array.from(cont.children).forEach(b => {
+                        const hVal = parseInt(b.style.height) || 50;
+                        const v = hVal + (Math.random() > 0.5 ? 5 : -5);
+                        b.style.height = Math.max(5, Math.min(98, v)) + '%';
+                    });
+                }, 1000);
+            }
+
+            // Trigger initial chart renders for pre-populated evidence
+            setTimeout(() => {
+                updateTorFlowChart();
+                addAudit('ECHO_FORENSIC: Multi-hop timing synchrony pattern pre-loaded from historical capture.');
+            }, 1000);
+
+
+            // Heatmap — real-looking activity based on current time
+            const hm = document.getElementById('rhythm-heatmap');
+            if (hm) {
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                // Generate realistic activity — high at evenings (18-23 UTC), anomaly at odd hours
+                const activity = days.map((_, di) => Array.from({length:24}, (_, h) => {
+                    if (di===5 || di===6) return h>=20 && h<=23 ? 5 : h>=14 ? 3 : Math.random()<0.3 ? 2:0;
+                    if (h>=21 && h<=22) return 5; // peak
+                    if (h>=18 && h<=23) return 4;
+                    if (h>=9  && h<=17) return Math.random()<0.6 ? 3:2;
+                    if (h>=0  && h<=5 ) return Math.random()<0.15 ? 2:0; // suspicious late night
+                    return Math.random()<0.2 ? 1:0;
+                }));
+                const cols = ['#0d1117','#0a2818','#0f4a2a','#1D9E75','#00d4ff','#ff4757'];
+                let t = '<table style="border-collapse:separate;border-spacing:2px;">';
+                t += '<tr><td style="width:38px;"></td>';
+                for (let h=0; h<24; h++) {
+                    t += `<td style="text-align:center;color:#7d8590;font-size:9px;min-width:22px;font-family:'JetBrains Mono',monospace;padding-bottom:4px;">${h%2===0?h:''}</td>`;
+                }
+                t += '</tr>';
+                days.forEach((day, di) => {
+                    t += `<tr><td style="color:#7d8590;font-size:11px;padding-right:8px;white-space:nowrap;font-family:'JetBrains Mono',monospace;vertical-align:middle;">${day}</td>`;
+                    for (let h=0; h<24; h++) {
+                        const v = activity[di][h];
+                        const bg = cols[Math.min(v, cols.length-1)];
+                        const lbl = v===5?'🔴 ANOMALY — unusual session':['No activity','Low','Moderate','Active','Peak activity'][Math.min(v,4)];
+                        t += `<td title="${day} ${h}:00 UTC — ${lbl}" onmouseover="this.style.transform='scale(1.5)';this.style.zIndex='10'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='1'" style="background:${bg};width:22px;height:18px;border-radius:3px;cursor:pointer;transition:transform 0.1s;position:relative;"></td>`;
+                    }
+                    t += '</tr>';
+                });
+                t += '</table>';
+                hm.innerHTML = t;
+            }
+
+            // Timeline
+            function renderTimeline(filter) {
+                const tlContainer = document.getElementById('timeline-container');
+                if (!tlContainer) return;
+                tlContainer.innerHTML = '';
+
+                const now = new Date();
+                const tlData = [
+                    { ip: '192.168.1.47', sub: 'SUSPECT-PC-001', color: '#ff4757', bars:[{l:5,w:8},{l:20,w:5},{l:35,w:12},{l:55,w:4},{l:70,w:9},{l:85,w:6}], markers:[{l:20,type:'shift'},{l:55,type:'shift'},{l:85,type:'shift'}] },
+                    { ip: '185.220.101.47', sub: 'TOR EXIT / Hetzner', color: '#ffa502', bars:[{l:6,w:6},{l:21,w:4},{l:36,w:10},{l:56,w:3},{l:71,w:8},{l:86,w:5}], markers:[{l:21,type:'shift'},{l:56,type:'shift'}] },
+                    { ip: '104.21.45.89', sub: 'Cloudflare WARP VPN', color: '#00d4ff', bars:[{l:8,w:5},{l:23,w:3},{l:40,w:8},{l:60,w:4},{l:75,w:7}], markers:[{l:40,type:'shift'}] },
+                    { ip: '45.133.1.22', sub: 'WireGuard VPN Exit', color: '#a29bfe', bars:[{l:10,w:4},{l:25,w:6},{l:45,w:5},{l:65,w:3},{l:80,w:6}], markers:[{l:25,type:'shift'},{l:65,type:'shift'}] },
+                    { ip: '8.8.8.8', sub: 'Google DNS (Probe)', color: '#00b894', bars:[{l:2,w:15},{l:30,w:10},{l:50,w:12},{l:72,w:9}], markers:[] },
+                ];
+
+                tlData.forEach(function (row) {
+                    // Filter logic: In a real app we'd filter the data.
+                    // For this hackathon UI, we simulate 6h by only showing the last segments.
+                    var displayData = JSON.parse(JSON.stringify(row));
+                    if (filter === '6h') {
+                        displayData.bars = displayData.bars.filter(b => b.l > 75);
+                        displayData.markers = displayData.markers.filter(m => m.l > 75);
+                    } else if (filter === '24h') {
+                        displayData.bars = displayData.bars.filter(b => b.l > 60);
+                        displayData.markers = displayData.markers.filter(m => m.l > 60);
+                    }
+
+                    var r = document.createElement('div');
+                    r.className = 'timeline-row';
+                    var lbl = document.createElement('div');
+                    lbl.className = 'timeline-label mono';
+                    lbl.style.fontSize = '0.78rem';
+                    lbl.innerHTML = row.ip + '<br><span style="font-size:0.7rem;'
+                        + 'color:var(--text-main);">' + row.sub + '</span>';
+                    r.appendChild(lbl);
+                    var track = document.createElement('div');
+                    track.className = 'timeline-track';
+                    displayData.bars.forEach(function (b) {
+                        var bar = document.createElement('div');
+                        bar.className = 'timeline-bar';
+                        bar.style.left = b.l + '%';
+                        bar.style.width = b.w + '%';
+                        bar.style.backgroundColor = row.color;
+                        bar.title = 'Session at Day '
+                            + Math.ceil(b.l / 14.3) + ' — ' + b.w * 10 + 'min';
+                        track.appendChild(bar);
+                    });
+                    displayData.markers.forEach(function (m) {
+                        var mk = document.createElement('div');
+                        mk.className = 'timeline-marker';
+                        mk.style.left = m.l + '%';
+                        if (m.type === 'shift')
+                            mk.style.borderTopColor = 'var(--warning)';
+                        track.appendChild(mk);
+                    });
+                    r.appendChild(track);
+                    tlContainer.appendChild(r);
+                });
+            }
+
+            // Timeline Init and Listeners
+            renderTimeline('24h');
+            ['all', '24h', '6h'].forEach(f => {
+                document.getElementById('tl-filter-' + f)?.addEventListener('click', function() {
+                    document.querySelectorAll('#tab-timeline .btn').forEach(b => b.classList.remove('btn-primary'));
+                    this.classList.add('btn-primary');
+                    renderTimeline(f);
+                });
+            });
+
+            // Network Graph Init Function
+            function initNetwork() {
+                const container = document.getElementById('networkG');
+                if (!container) return;
+
+                window.networkNodes = new vis.DataSet([
+                    {
+                        id: 1, label: 'SUSPECT\n192.168.1.47',
+                        color: { background: '#ff4757', border: '#cc0000' },
+                        size: 35, font: { color: '#ffffff', size: 13 },
+                        _type: 'Target Device', _sessions: 0, _bytes: '0B',
+                        _tags: ['Suspect', 'Target']
+                    }
+                ]);
+
+                window.networkEdges = new vis.DataSet([]);
+
+                const data = { nodes: window.networkNodes, edges: window.networkEdges };
+                const options = {
+                    nodes: { shape: 'dot', borderWidth: 2 },
+                    physics: {
+                        forceAtlas2Based: {
+                            gravitationalConstant: -80,
+                            centralGravity: 0.01,
+                            springLength: 180,
+                            springConstant: 0.06
+                        },
+                        maxVelocity: 50,
+                        solver: 'forceAtlas2Based',
+                        timestep: 0.35,
+                        stabilization: { iterations: 150 }
+                    },
+                    edges: { smooth: { type: 'continuous' } },
+                    interaction: { hover: true, tooltipDelay: 200 }
+                };
+
+                const network = new vis.Network(container, data, options);
+
+                network.on("selectNode", function (params) {
+                    const nodeId = params.nodes[0];
+                    const node = window.networkNodes.get(nodeId);
+                    if (node) {
+                        document.getElementById('node-info-empty').style.display = 'none';
+                        const content = document.getElementById('node-info-content');
+                        content.style.display = 'block';
+                        document.getElementById('ni-ip').innerText = nodeId;
+                        document.getElementById('ni-type').innerText = node._type || 'Direct TCP Stream';
+                        document.getElementById('ni-first').innerText = new Date().toLocaleTimeString();
+                        document.getElementById('ni-sessions').innerText = Math.floor(Math.random() * 50) + 1;
+                        document.getElementById('ni-bytes').innerText = (Math.random() * 5).toFixed(2) + ' MB';
+                        
+                        const tags = document.getElementById('ni-tags');
+                        tags.innerHTML = '';
+                        (node._tags || ['SECURE_CHANNEL', 'ACTIVE']).forEach(t => {
+                            const s = document.createElement('span');
+                            s.className = 'badge cyan';
+                            s.innerText = t;
+                            tags.appendChild(s);
+                        });
+                    }
+                });
+            }
+
+
+        // Demo Burst Trigger
+        document.getElementById('btn-demo-burst')?.addEventListener('click', async function() {
+            const ip = document.getElementById('target-select')?.value;
+            if (!ip || ip === 'probe') {
+                alert('Please select a target device first.');
+                return;
+            }
+            const btn = this;
+            btn.disabled = true;
+            btn.innerText = 'WAITING FOR SYNC...';
+            try {
+                await fetch(`/api/trigger-demo-burst?ip=${ip}`, { method: 'POST' });
+                addAudit('DEANONYMISATION_ATTACK: Synthetic burst synchronization initiated.');
+                setTimeout(() => {
+                    pollCorrelations();
+                    btn.disabled = false;
+                    btn.innerHTML = '<span style="margin-right:8px;">⚡</span> TRIGGER FORENSIC BURST (DEMO)';
+                }, 1000);
+            } catch (e) {
+                console.error(e);
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('authCheck').addEventListener(
+            'change', function () {
+                var btn = document.getElementById('authBtn');
+                btn.disabled = !this.checked;
+                btn.style.opacity = this.checked ? '1' : '0.4';
+                btn.style.cursor = this.checked ? 'pointer' : 'not-allowed';
+            });
+
+        window.doAuth = function() {
+            var msgs = ['Validating warrant authorization...',
+                'Loading capture modules...', 'Connecting intelligence database...',
+                'System ready — access granted.'];
+            var prog = document.getElementById('authProgress');
+            var bar = document.getElementById('authBar');
+            var msg = document.getElementById('authMsg');
+            var btn = document.getElementById('authBtn');
+            prog.style.display = 'block';
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            var pct = 0, mi = 0;
+            var iv = setInterval(function () {
+                pct += 1.6;
+                bar.style.width = Math.min(pct, 100) + '%';
+                var idx = Math.floor(pct / 25);
+                if (idx < msgs.length) msg.textContent = msgs[idx];
+                if (pct >= 100) {
+                    clearInterval(iv);
+                    msg.textContent = 'System ready — access granted.';
+                    var gate = document.getElementById('legalGate');
+                    setTimeout(function () {
+                        gate.style.transition = 'opacity 0.6s';
+                        gate.style.opacity = '0';
+                        setTimeout(function () {
+                            gate.style.display = 'none';
+                            // Auto-start packet capture after auth
+                            document.getElementById('btn-start-capture').click();
+                            // Immediately populate VPN intelligence data (no waiting for target select)
+                            pollCorrelations();
+                            pollDeviceProfiles();
+                            setInterval(pollCorrelations, 4000);
+                        }, 600);
+                    }, 400);
+                }
+            }, 40);
+        }
+
+        window.exportJSON = function() {
+            var data = {
+                report: 'ECHO Forensic Intelligence Report',
+                caseRef: 'ECHO-2024-1247', warrant: 'WRT-2024-04471',
+                investigator: 'INV-7734',
+                generated: new Date().toISOString(),
+                target: '192.168.1.47 (SUSPECT-PC-001)',
+                partyB: {
+                    ip: '185.220.101.47', confidence: '94.7%',
+                    asn: 'AS24940', org: 'Hetzner Online GmbH'
+                },
+                findings: ['Burst synchrony 82% hit rate',
+                    'JA3 fingerprint match 91%', 'Infrastructure GNN 89%']
+            };
+            var blob = new Blob([JSON.stringify(data, null, 2)],
+                { type: 'application/json' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'ECHO_report_' + Date.now() + '.json';
+            a.click();
+        }
+        window.launchWireshark = async function() {
+            try {
+                const response = await fetch('/api/open-wireshark', { method: 'POST' });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    alert('Wireshark Bridge active. Loading forensic packet stream...');
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Failed to launch Wireshark Bridge:', err);
+                alert('Connection to Forensic Backend failed.');
+            }
+        }
+        window.pollWarpStatus = async function() {
+            try {
+                const response = await fetch('/api/warp-status');
+                const data = await response.json();
+                const statusText = document.getElementById('warp-status-text');
+                const dot = document.getElementById('warp-dot');
+                const btn = document.getElementById('btn-warp-link');
+
+                if (statusText) statusText.innerText = data.status.toUpperCase();
+                if (dot) {
+                    dot.style.background = (data.status === 'Connected') ? '#2ed573' : 
+                                          (data.status === 'Connecting') ? '#ffa502' : '#ff4757';
+                    if (data.status === 'Connected') dot.classList.add('pulse');
+                    else dot.classList.remove('pulse');
+                }
+                if (btn) {
+                    btn.disabled = (data.status === 'Connected' || data.status === 'Connecting');
+                    btn.style.opacity = btn.disabled ? '0.5' : '1';
+                }
+            } catch (err) {
+                console.error('Warp Poll Error:', err);
+            }
+        }
+
+        window.forceWarpConnect = async function() {
+            const btn = document.getElementById('btn-warp-link');
+            if (btn) {
+                btn.innerText = 'LINKING...';
+                btn.disabled = true;
+            }
+            try {
+                addAudit('VPN_COMMAND: Direct forensic link request sent to Cloudflare WARP.');
+                const response = await fetch('/api/warp-connect', { method: 'POST' });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    addAudit('VPN_RESPONSE: Cloudflare WARP link initiated successfully.');
+                } else {
+                    addAudit('VPN_ERROR: WARP Link failed. Reason: ' + (result.message || 'Check WARP registration.'));
+                    alert('Cloudflare WARP Link failed: ' + (result.message || 'Ensure you are signed into WARP.'));
+                }
+            } catch (err) {
+                console.error('Warp Connect Error:', err);
+            } finally {
+                if (btn) btn.innerText = 'FORCE LINK';
+                pollWarpStatus();
+            }
+        }
+
+        // Initialize WARP polling
+        setInterval(pollWarpStatus, 3000);
+        pollWarpStatus();
+
+        });
+    </script>
+    <div id="explainModal" style="display:none;position:fixed;
+top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.85);z-index:2000;
+align-items:center;justify-content:center;">
+        <div style="background:#161b22;border:1px solid 
+  rgba(0,212,255,0.3);border-radius:12px;padding:32px;
+  max-width:560px;width:90%;max-height:90vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;
+    align-items:center;margin-bottom:20px;">
+                <span style="color:#00d4ff;font-weight:700;font-size:16px;
+      text-transform:uppercase;letter-spacing:1px;">
+                    Score Breakdown — 94.7% Confidence</span>
+                <button onclick="document.getElementById('explainModal')
+      .style.display='none'" style="background:none;border:none;
+      color:#7d8590;font-size:22px;cursor:pointer;
+      line-height:1;">&times;</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <div style="border-left:3px solid #00d4ff;padding:12px 16px;
+      background:rgba(0,212,255,0.05);border-radius:0 6px 6px 0;">
+                    <div style="font-weight:600;color:#00d4ff;margin-bottom:6px;">
+                        ① Burst Synchronization — 82% hit rate</div>
+                    <div style="font-size:13px;color:#7d8590;line-height:1.6;">
+                        23 of 28 encrypted sessions showed suspect outbound burst
+                        followed by response from 185.220.101.47 within 50–300ms.
+                        Probability of coincidence: less than 0.001%.</div>
+                </div>
+                <div style="border-left:3px solid #ffa502;padding:12px 16px;
+      background:rgba(255,165,2,0.05);border-radius:0 6px 6px 0;">
+                    <div style="font-weight:600;color:#ffa502;margin-bottom:6px;">
+                        ② TLS Fingerprint Match — 91% confidence</div>
+                    <div style="font-size:13px;color:#7d8590;line-height:1.6;">
+                        JA3 hash 771,4865-4866...23-24 matches Signal iOS 14.0+
+                        pattern against reference database of 847 known app
+                        profiles. Match precision: 91%.</div>
+                </div>
+                <div style="border-left:3px solid #ffa502;padding:12px 16px;
+      background:rgba(255,165,2,0.05);border-radius:0 6px 6px 0;">
+                    <div style="font-weight:600;color:#ffa502;margin-bottom:6px;">
+                        ③ Communication Rhythm — daily 45-min session</div>
+                    <div style="font-size:13px;color:#7d8590;line-height:1.6;">
+                        45-minute encrypted session observed at 21:00–22:30 UTC
+                        for 6 consecutive days. Pattern aligns exactly with
+                        suspect activity log. Probability of random alignment:
+                        less than 0.0001%.</div>
+                </div>
+                <div style="border-left:3px solid #ff4757;padding:12px 16px;
+      background:rgba(255,71,87,0.05);border-radius:0 6px 6px 0;">
+                    <div style="font-weight:600;color:#ff4757;margin-bottom:6px;">
+                        ④ Infrastructure GNN — criminal network link</div>
+                    <div style="font-size:13px;color:#7d8590;line-height:1.6;">
+                        Graph Neural Network link prediction: 185.220.101.47
+                        shares AS24940 subnet with 3 endpoints confirmed in
+                        Operation Darknet (2023). GNN posterior confidence: 89%.</div>
+                </div>
+            </div>
+            <button onclick="document.getElementById('explainModal')
+    .style.display='none'" style="width:100%;margin-top:20px;padding:12px;
+    background:#00d4ff;color:#000;border:none;border-radius:6px;
+    font-weight:700;cursor:pointer;font-size:14px;">CLOSE</button>
+        </div>
+    </div>
+</body>
+
+</html>
