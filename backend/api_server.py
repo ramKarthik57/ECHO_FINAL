@@ -72,6 +72,16 @@ class AnalysisStatus(BaseModel):
     data: Optional[Dict] = None
 
 
+@app.get("/health")
+async def health_check():
+    """Service health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "ECHO Forensic API",
+        "version": "1.0.0"
+    }
+
+
 @app.get("/")
 async def root():
     """API root endpoint"""
