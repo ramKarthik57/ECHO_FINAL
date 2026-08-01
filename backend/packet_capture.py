@@ -4,9 +4,13 @@ Captures network packets and saves to PCAP file
 """
 from scapy.all import sniff, wrpcap, rdpcap, IP, TCP, UDP
 from typing import List, Dict, Optional
+import logging
 import time
 import sys
 import os
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("echo.packet_capture")
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.config import *
