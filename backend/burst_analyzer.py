@@ -29,6 +29,7 @@ class BurstAnalyzer:
         self.correlation_window = correlation_window
         self.bursts = []
         self.correlations = []
+        self.burst_density_cache = {}
     
     def detect_bursts_in_flows(self, flows: Dict[str, Dict]) -> List[Dict]:
         """
