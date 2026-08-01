@@ -328,6 +328,7 @@ The REST API is served at `http://localhost:8000`.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/` | API info |
+| `GET` | `/health` | Health check endpoint |
 | `POST` | `/analyze` | Run full forensic pipeline |
 | `GET` | `/flows` | Get all communication flows |
 | `GET` | `/bursts` | Get detected traffic bursts |
