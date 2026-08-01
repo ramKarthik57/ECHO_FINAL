@@ -105,6 +105,10 @@ class TestBurstAnalyzer:
         correlations = burst_analyzer.find_correlated_bursts("192.168.1.10")
         assert isinstance(correlations, list)
 
+    def test_burst_density_cache_init(self, burst_analyzer):
+        assert hasattr(burst_analyzer, "burst_density_cache")
+        assert isinstance(burst_analyzer.burst_density_cache, dict)
+
 
 # ============================================================
 # EndpointProfiler Tests
