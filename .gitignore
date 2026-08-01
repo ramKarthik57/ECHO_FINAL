@@ -1,0 +1,124 @@
+# =============================================================================
+# ECHO - Encrypted Communication Heuristic Observer
+# .gitignore
+# =============================================================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+.env
+env.bak/
+venv.bak/
+
+# --- Data & Capture Files ---
+# Keep the data/ directory but ignore runtime-generated files
+data/*.pcap
+data/*.db
+data/metadata.json
+data/flows.json
+data/correlations.json
+data/endpoint_profiles.json
+data/graph.json
+
+# Keep sample/demo data (comment the above and uncomment to include all data)
+# !data/sample_captured_packets.pcap
+
+# --- Log Files ---
+*.log
+server_*.log
+dashboard_*.log
+server_*.txt
+test_result.txt
+
+# --- Database Files ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- IDE / Editor ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- OS Specific ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# --- Jupyter ---
+.ipynb_checkpoints
+*.ipynb
+
+# --- Distribution / Packaging ---
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Secrets & Config ---
+.env
+.env.local
+.env.*.local
+config_local.py
+secrets.py
+
+# --- Temporary Files ---
+*.tmp
+*.bak
+*.orig
+tmp/
+temp/
+
+# --- Interface Debug Files ---
+debug_*.py
+detect_iface.py
+export_ifaces.py
+get_detailed_ifaces.py
+list_interfaces.py
+ifaces_detailed.json
+interfaces_full.json
+
+# --- Presentation Files (keep in separate branch or releases) ---
+# MM-PRE.pptx
+
+# --- WhatsApp/Temp Images ---
+WhatsApp*.jpeg
+WhatsApp*.jpg
+WhatsApp*.png

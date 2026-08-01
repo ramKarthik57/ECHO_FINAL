@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: echo-api
+    command: python backend/api_server.py
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - echo-network
+    restart: unless-stopped
+
+  dashboard:
+    build: .
+    container_name: echo-dashboard
+    command: python dashboard/app.py
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - api
+    networks:
+      - echo-network
+    restart: unless-stopped
+
+networks:
+  echo-network:
+    driver: bridge
+
+volumes:
+  echo-data:
